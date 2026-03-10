@@ -508,10 +508,31 @@ let totalSecs  = cfg.work * 60;
 let remaining  = totalSecs;
 let running    = false;
 let interval   = null;
+let endTime    = null;   // wall-clock ms when timer hits zero
 let sessions   = parseInt(localStorage.getItem('pomo_sessions') || '0');
 let focusMins  = parseInt(localStorage.getItem('pomo_focus')    || '0');
 let streak     = parseInt(localStorage.getItem('pomo_streak')   || '0');
 let lastDate   = localStorage.getItem('pomo_date') || '';
+
+// Restore if page refreshed while running
+(function restoreState() {
+  try {
+    const saved = localStorage.getItem('pomo_running');
+    if (saved) {
+      const s = JSON.parse(saved);
+      const now = Date.now();
+      if (s.endTime > now) {
+        mode      = s.mode;
+        totalSecs = s.total;
+        endTime   = s.endTime;
+        remaining = Math.ceil((endTime - now) / 1000);
+        running   = true;
+      } else {
+        localStorage.removeItem('pomo_running');
+      }
+    }
+  } catch(e) {}
+})();
 
 checkStreakReset();
 
@@ -581,30 +602,41 @@ function renderPills() {
 // ─── Timer logic ──────────────────────────────────────────
 function startStop() {
   if (running) {
-    clearInterval(interval);
+    // Pause: save remaining, cancel scheduled notif
+    clearInterval(interval); interval = null;
+    remaining = Math.max(0, Math.ceil((endTime - Date.now()) / 1000));
     running = false;
+    endTime = null;
+    localStorage.removeItem('pomo_running');
+    swMessage({ type: 'CANCEL' });
   } else {
     requestNotifPermission();
     running = true;
-    interval = setInterval(tick, 1000);
+    endTime = Date.now() + remaining * 1000;
+    // Persist so page-refresh recovers the timer
+    localStorage.setItem('pomo_running', JSON.stringify({ endTime, mode, total: totalSecs }));
+    // Pre-schedule SW notification for when timer ends
+    scheduleNotif();
+    interval = setInterval(tick, 500); // 500ms for snappy UI
   }
   render();
 }
 
 function tick() {
-  remaining--;
+  if (!endTime) return;
+  const now = Date.now();
+  remaining = Math.max(0, Math.ceil((endTime - now) / 1000));
   render();
   if (remaining <= 0) finish();
 }
 
 function finish() {
-  clearInterval(interval);
+  clearInterval(interval); interval = null;
   running = false;
+  endTime = null;
+  localStorage.removeItem('pomo_running');
 
-  // Vibrate
   if (navigator.vibrate) navigator.vibrate([300, 100, 300, 100, 300]);
-
-  // Sound
   playChime();
 
   if (mode === 'work') {
@@ -614,30 +646,69 @@ function finish() {
     localStorage.setItem('pomo_sessions', sessions);
     localStorage.setItem('pomo_focus',    focusMins);
     localStorage.setItem('pomo_streak',   streak);
-    notify('🍅 Session complete!', 'Time for a well-deserved break.');
     showBanner('🍅 Session complete! Take a break.');
     const nextMode = (sessions % cfg.cycles === 0) ? 'long' : 'short';
     switchMode(nextMode);
+    // Notification already fired by SW; send immediate one as fallback
+    swMessage({ type: 'NOTIFY', title: '🍅 Session complete!', body: 'Time for a well-deserved break.' });
   } else {
-    notify('⚡ Break over!', 'Ready to focus again?');
     showBanner('⚡ Break over! Back to work.');
     switchMode('work');
+    swMessage({ type: 'NOTIFY', title: '⚡ Break over!', body: 'Ready to focus again?' });
   }
   render();
 }
 
 function reset() {
-  clearInterval(interval);
-  running   = false;
+  clearInterval(interval); interval = null;
+  running = false; endTime = null;
   remaining = totalSecs;
+  localStorage.removeItem('pomo_running');
+  swMessage({ type: 'CANCEL' });
   render();
 }
 
 function skip() {
-  clearInterval(interval);
+  clearInterval(interval); interval = null;
   running = false;
+  localStorage.removeItem('pomo_running');
+  swMessage({ type: 'CANCEL' });
   finish();
 }
+
+// Send a message to the active service worker
+async function swMessage(msg) {
+  if (!('serviceWorker' in navigator)) return;
+  try {
+    const reg = await navigator.serviceWorker.ready;
+    reg.active?.postMessage(msg);
+  } catch(e) {}
+}
+
+// Tell the SW to fire a notification exactly when the timer ends
+async function scheduleNotif() {
+  const delayMs = endTime - Date.now();
+  const isWork  = mode === 'work';
+  swMessage({
+    type:    'SCHEDULE',
+    title:   isWork ? '🍅 Session complete!' : '⚡ Break over!',
+    body:    isWork ? 'Time for a well-deserved break.' : 'Ready to focus again?',
+    delayMs: Math.max(0, delayMs)
+  });
+}
+
+// Re-sync when app comes back to foreground
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible' && running && endTime) {
+    const now = Date.now();
+    remaining = Math.max(0, Math.ceil((endTime - now) / 1000));
+    if (remaining <= 0) {
+      finish();
+    } else {
+      render();
+    }
+  }
+});
 
 function switchMode(m) {
   mode      = m;
@@ -673,20 +744,7 @@ async function requestNotifPermission() {
   }
 }
 
-async function notify(title, body) {
-  // Service Worker notification (works when app is backgrounded as PWA)
-  if ('serviceWorker' in navigator) {
-    const reg = await navigator.serviceWorker.ready.catch(() => null);
-    if (reg) {
-      reg.active?.postMessage({ type:'NOTIFY', title, body });
-      return;
-    }
-  }
-  // Fallback: direct Notification API
-  if ('Notification' in window && Notification.permission === 'granted') {
-    new Notification(title, { body, icon:'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg"><text y="14" font-size="16">🍅</text></svg>' });
-  }
-}
+
 
 function showBanner(msg) {
   notifBanner.textContent = msg;
@@ -790,19 +848,21 @@ if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('sw.js').catch(console.error);
 }
 
-// ─── Wake Lock (keep screen on while running, if supported) ──
-let wakeLock = null;
-async function acquireWakeLock() {
-  if ('wakeLock' in navigator) {
-    try { wakeLock = await navigator.wakeLock.request('screen'); } catch(e) {}
-  }
+// ─── Wake Lock ───────────────────────────────────────────
+if ('wakeLock' in navigator) {
+  document.addEventListener('visibilitychange', async () => {
+    if (document.visibilityState === 'visible' && running) {
+      try { await navigator.wakeLock.request('screen'); } catch(e) {}
+    }
+  });
 }
-document.addEventListener('visibilitychange', async () => {
-  if (document.visibilityState === 'visible' && running) acquireWakeLock();
-});
 
 // ─── Init ─────────────────────────────────────────────────
 render();
+if (running) {
+  interval = setInterval(tick, 500);
+  scheduleNotif(); // re-schedule notification in case SW was restarted
+}
 </script>
 </body>
 </html>
