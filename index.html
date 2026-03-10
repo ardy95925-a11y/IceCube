@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Into The Abyss</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Cormorant+Garamond:ital,wght@0,300;1,300&display=swap');
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    width: 100%; height: 100%;
+    overflow: hidden;
+    background: #010008;
+    touch-action: none;
+    -webkit-user-select: none; user-select: none;
+    font-family: 'Cormorant Garamond', serif;
+  }
+
+  #gl-canvas {
+    position: fixed; inset: 0; z-index: 1;
+    filter: contrast(1.08) saturate(1.2) brightness(1.03);
+  }
+  #fx-canvas {
+    position: fixed; inset: 0; z-index: 4; pointer-events: none;
+  }
+
+  /* Cinematic vignette */
+  #vignette {
+    position: fixed; inset: 0; z-index: 6; pointer-events: none;
+    background: radial-gradient(ellipse 72% 72% at 50% 50%,
+      transparent 30%, rgba(0,0,12,0.55) 65%, rgba(0,0,18,0.93) 100%);
+  }
+
+  /* Film grain */
+  #grain {
+    position: fixed; inset: -50%; width: 200%; height: 200%;
+    z-index: 7; pointer-events: none; opacity: 0.042;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.82' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)'/%3E%3C/svg%3E");
+    animation: grainAnim 0.065s steps(1) infinite;
+  }
+  @keyframes grainAnim {
+    0%{transform:translate(0,0)} 17%{transform:translate(-3%,2%)} 34%{transform:translate(2%,-3%)}
+    51%{transform:translate(-1%,3%)} 68%{transform:translate(3%,-1%)} 85%{transform:translate(-2%,-2%)}
+  }
+
+  /* Void flash overlay */
+  #void-flash { position: fixed; inset: 0; z-index: 5; pointer-events: none; opacity: 0; }
+  #void-flash.flash { animation: flashOut 0.85s ease-out forwards; }
+  @keyframes flashOut {
+    0%   { opacity:1; background: radial-gradient(ellipse 55% 38% at var(--vx) var(--vy), rgba(192,132,252,0.55), rgba(88,28,135,0.28) 50%, transparent 78%); }
+    100% { opacity:0; background: radial-gradient(ellipse 55% 38% at var(--vx) var(--vy), transparent, transparent); }
+  }
+
+  /* UI layer */
+  #ui { position: fixed; inset: 0; z-index: 10; pointer-events: none; }
+
+  #title {
+    position: absolute; top: 0; left: 0; right: 0;
+    text-align: center; padding-top: clamp(18px, 4vh, 55px);
+  }
+  #title h1 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(30px, 7.5vw, 72px);
+    letter-spacing: 0.32em; color: #ede9fe;
+    text-shadow: 0 0 18px rgba(139,92,246,0.75), 0 0 48px rgba(88,28,135,0.55), 0 0 100px rgba(46,6,79,0.45);
+  }
+  #title p {
+    margin-top: 5px; font-style: italic; font-weight: 300;
+    font-size: clamp(11px, 2vw, 17px); color: rgba(196,165,247,0.38); letter-spacing: 0.32em;
+  }
+
+  #counter {
+    position: absolute; top: clamp(12px,2.5vh,35px); right: clamp(18px,4vw,50px); text-align: right;
+  }
+  #count-num {
+    font-family: 'Bebas Neue', sans-serif; font-size: clamp(44px,9vw,90px); line-height: 1;
+    color: rgba(167,139,250,0.88);
+    text-shadow: 0 0 22px rgba(124,58,237,0.65), 0 0 65px rgba(76,29,149,0.42);
+  }
+  #count-label { font-style:italic; font-size:11px; letter-spacing:0.22em; color:rgba(196,165,247,0.27); text-transform:uppercase; }
+
+  #upload-btn {
+    position: absolute; top: clamp(98px,16vh,150px); left: 50%; transform: translateX(-50%);
+    pointer-events: all;
+    display: flex; align-items: center; gap: 10px; padding: 14px 34px;
+    border: 1px solid rgba(124,58,237,0.35); background: rgba(8,2,28,0.7);
+    backdrop-filter: blur(22px); -webkit-backdrop-filter: blur(22px);
+    border-radius: 100px; color: #c4b5fd;
+    font-family: 'Bebas Neue', sans-serif; font-size: 17px; letter-spacing: 0.24em;
+    cursor: pointer; white-space: nowrap; transition: all 0.3s ease;
+    box-shadow: 0 8px 44px rgba(0,0,0,0.55), 0 0 0 1px rgba(124,58,237,0.12);
+  }
+  #upload-btn:active {
+    transform: translateX(-50%) scale(0.96);
+    border-color: rgba(167,139,250,0.65);
+    box-shadow: 0 4px 20px rgba(0,0,0,0.4), 0 0 50px rgba(124,58,237,0.35);
+  }
+  #upload-btn svg { width:17px; height:17px; stroke:#a78bfa; flex-shrink:0; }
+  #file-input { display:none; }
+
+  #hint {
+    position: absolute; bottom: clamp(16px,3.5vh,38px); left: 50%; transform: translateX(-50%);
+    font-style:italic; font-size:13px; color:rgba(167,139,250,0.27); letter-spacing:0.18em; white-space:nowrap;
+    animation: breathe 5s ease-in-out infinite;
+  }
+  @keyframes breathe { 0%,100%{opacity:.5} 50%{opacity:1} }
+
+  /* Photo cards */
+  .photo-card {
+    position: fixed; z-index: 15; cursor: grab; touch-action: none; will-change: transform, filter;
+  }
+  .photo-card img {
+    display: block; pointer-events: none; border-radius: 2px;
+    box-shadow: 0 3px 8px rgba(0,0,0,0.95), 0 14px 45px rgba(0,0,0,0.75), 0 0 0 1px rgba(255,255,255,0.06);
+    transition: box-shadow 0.25s ease;
+  }
+  .photo-card.over-void { filter: brightness(1.18) saturate(1.1); }
+  .photo-card.over-void img {
+    box-shadow: 0 3px 8px rgba(0,0,0,0.95), 0 10px 35px rgba(124,58,237,0.65),
+      0 0 60px rgba(124,58,237,0.5), 0 0 0 2px rgba(167,139,250,0.65);
+  }
+
+  @keyframes dropIn {
+    0%   { opacity:0; transform: var(--cr) translateY(-30px) scale(0.85); }
+    70%  { opacity:1; transform: var(--cr) translateY(4px) scale(1.02); }
+    100% { opacity:1; transform: var(--cr) translateY(0) scale(1); }
+  }
+  @keyframes suckInto {
+    0%   { opacity:1; filter:brightness(1) blur(0px); }
+    35%  { opacity:1; filter:brightness(2) saturate(0.4) blur(0px); }
+    72%  { opacity:0.65; filter:brightness(2.8) saturate(0) blur(1.5px); }
+    100% { opacity:0; filter:brightness(4) blur(6px); }
+  }
+</style>
+</head>
+<body>
+<canvas id="gl-canvas"></canvas>
+<canvas id="fx-canvas"></canvas>
+<div id="vignette"></div>
+<div id="grain"></div>
+<div id="void-flash"></div>
+
+<div id="ui">
+  <div id="title">
+    <h1>Into The Abyss</h1>
+    <p>drag your memories into the void</p>
+  </div>
+  <div id="counter">
+    <div id="count-num">0</div>
+    <div id="count-label">consumed</div>
+  </div>
+  <label id="upload-btn">
+    <svg viewBox="0 0 24 24" fill="none" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+      <polyline points="17 8 12 3 7 8"/>
+      <line x1="12" y1="3" x2="12" y2="15"/>
+    </svg>
+    UPLOAD PHOTOS
+    <input type="file" id="file-input" multiple accept="image/*">
+  </label>
+  <div id="hint">drag photos down into the void</div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+'use strict';
+
+const glCanvas  = document.getElementById('gl-canvas');
+const fxCanvas  = document.getElementById('fx-canvas');
+const fxCtx     = fxCanvas.getContext('2d');
+const countNum  = document.getElementById('count-num');
+const voidFlash = document.getElementById('void-flash');
+
+let W = window.innerWidth, H = window.innerHeight;
+fxCanvas.width = W; fxCanvas.height = H;
+
+// ── RENDERER ────────────────────────────────────────────────────────────────
+const renderer = new THREE.WebGLRenderer({ canvas: glCanvas, antialias: true, powerPreference: 'high-performance' });
+renderer.setSize(W, H);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.outputEncoding      = THREE.sRGBEncoding;
+renderer.toneMapping         = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.12;
+renderer.physicallyCorrectLights = true;
+
+// ── SCENE ───────────────────────────────────────────────────────────────────
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x010008);
+scene.fog = new THREE.FogExp2(0x010008, 0.052);
+
+// ── CAMERA ──────────────────────────────────────────────────────────────────
+const camera = new THREE.PerspectiveCamera(52, W / H, 0.1, 100);
+camera.position.set(0, 6.5, 7.2);
+const CAM_BASE = new THREE.Vector3(0, 6.5, 7.2);
+const CAM_LOOK = new THREE.Vector3(0, 1.2, 0);
+camera.lookAt(CAM_LOOK);
+
+// ── LIGHTS ──────────────────────────────────────────────────────────────────
+const ambientLight = new THREE.AmbientLight(0x07001c, 0.75);
+const voidDeep     = new THREE.PointLight(0x5b21b6, 20, 15);
+const rimLight     = new THREE.PointLight(0x7c3aed, 7, 10);
+const upLight      = new THREE.PointLight(0x4338ca, 3, 8);
+const fillLight    = new THREE.DirectionalLight(0x1e1b4b, 0.22);
+
+voidDeep.position.set(0, -4, 0);
+rimLight.position.set(0, 0.4, 0);
+upLight.position.set(0, -1, 0);
+fillLight.position.set(-4, 7, 5);
+scene.add(ambientLight, voidDeep, rimLight, upLight, fillLight);
+
+// ── PROCEDURAL GROUND TEXTURE ────────────────────────────────────────────────
+function buildGroundTex() {
+  const S = 2048, cv = document.createElement('canvas');
+  cv.width = cv.height = S;
+  const cx = cv.getContext('2d');
+  cx.fillStyle = '#040014'; cx.fillRect(0, 0, S, S);
+  // Grain
+  for (let i = 0; i < 70000; i++) {
+    const a = Math.random() * 0.03;
+    cx.fillStyle = `rgba(70,15,110,${a})`;
+    cx.fillRect(Math.random()*S, Math.random()*S, 1, 1);
+  }
+  // Cracks from center
+  const ox = S*0.5, oy = S*0.5;
+  for (let c = 0; c < 26; c++) {
+    const ang0 = Math.random() * Math.PI * 2;
+    cx.strokeStyle = `rgba(90,25,150,${0.07 + Math.random()*0.13})`;
+    cx.lineWidth = 0.7 + Math.random() * 1.2;
+    cx.beginPath();
+    let px = ox + Math.cos(ang0) * 370, py = oy + Math.sin(ang0) * 370;
+    cx.moveTo(px, py);
+    let a = ang0, rem = 250 + Math.random() * 520;
+    while (rem > 0) {
+      a += (Math.random()-0.5) * 0.45;
+      const st = Math.min(rem, 70 + Math.random()*80);
+      px += Math.cos(a)*st; py += Math.sin(a)*st;
+      cx.lineTo(px, py); rem -= st;
+    }
+    cx.stroke();
+  }
+  // Center glow
+  const g = cx.createRadialGradient(ox, oy, 0, ox, oy, 430);
+  g.addColorStop(0, 'rgba(80,20,140,0.2)');
+  g.addColorStop(0.5,'rgba(40,5,80,0.08)');
+  g.addColorStop(1, 'rgba(0,0,0,0)');
+  cx.fillStyle = g; cx.fillRect(0, 0, S, S);
+  return new THREE.CanvasTexture(cv);
+}
+const groundTex = buildGroundTex();
+groundTex.wrapS = groundTex.wrapT = THREE.RepeatWrapping;
+groundTex.repeat.set(3, 3);
+
+// ── GROUND RING ──────────────────────────────────────────────────────────────
+const RIM = 2.82;
+const ground = new THREE.Mesh(
+  new THREE.RingGeometry(RIM + 0.02, 55, 128, 3),
+  new THREE.MeshStandardMaterial({ map: groundTex, color: 0x050015, roughness: 0.22, metalness: 0.78, side: THREE.DoubleSide })
+);
+ground.rotation.x = -Math.PI / 2;
+scene.add(ground);
+
+// Black cap over void interior
+const voidCap = new THREE.Mesh(
+  new THREE.CircleGeometry(RIM, 128),
+  new THREE.MeshBasicMaterial({ color: 0x000000 })
+);
+voidCap.rotation.x = -Math.PI / 2; voidCap.position.y = -0.01;
+scene.add(voidCap);
+
+// ── VOID RIM ────────────────────────────────────────────────────────────────
+const rimMesh = new THREE.Mesh(
+  new THREE.TorusGeometry(RIM, 0.072, 32, 128),
+  new THREE.MeshStandardMaterial({
+    color: 0x3b0764, emissive: new THREE.Color(0x7c3aed),
+    emissiveIntensity: 6, roughness: 0.08, metalness: 0.92,
+  })
+);
+rimMesh.rotation.x = -Math.PI / 2; scene.add(rimMesh);
+
+// Halo rings
+[{ r: 0.48, op: 0.13 }, { r: 1.4, op: 0.055 }].forEach(h => {
+  const m = new THREE.Mesh(
+    new THREE.TorusGeometry(RIM, h.r, 16, 64),
+    new THREE.MeshBasicMaterial({ color: h.r < 1 ? 0x5b21b6 : 0x2e1065, transparent: true, opacity: h.op, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide })
+  );
+  m.rotation.x = -Math.PI / 2; scene.add(m);
+});
+
+// ── DEPTH RINGS ──────────────────────────────────────────────────────────────
+const depthRings = [];
+const cA = new THREE.Color(0x7c3aed), cB = new THREE.Color(0x0c001e);
+for (let i = 0; i < 16; i++) {
+  const t = i / 16;
+  const ring = new THREE.Mesh(
+    new THREE.TorusGeometry(RIM * (1 - t*0.73), Math.max(0.013, 0.044*(1-t*0.65)), 10, Math.max(24, 96-i*5)),
+    new THREE.MeshBasicMaterial({
+      color: cA.clone().lerp(cB, Math.pow(t, 0.7)),
+      transparent: true, opacity: Math.max(0.04, 0.88-t*0.82),
+      blending: THREE.AdditiveBlending, depthWrite: false,
+    })
+  );
+  ring.rotation.x = -Math.PI / 2;
+  ring.position.y = -(0.38 + i * 0.52);
+  ring.userData.spd = (Math.random() < 0.5 ? 1 : -1) * (0.0018 + Math.random() * 0.003);
+  scene.add(ring); depthRings.push(ring);
+}
+
+// ── VOID WALL CYLINDER ───────────────────────────────────────────────────────
+scene.add(Object.assign(new THREE.Mesh(
+  new THREE.CylinderGeometry(RIM - 0.04, 0.35, 10, 80, 10, true),
+  new THREE.MeshStandardMaterial({ color: 0x0b0025, roughness: 0.9, metalness: 0.1, side: THREE.BackSide })
+), { position: new THREE.Vector3(0, -5, 0) }));
+
+// ── GOD RAYS ────────────────────────────────────────────────────────────────
+const godRays = [];
+for (let i = 0; i < 9; i++) {
+  const ang = (i/9)*Math.PI*2, off = 0.15 + Math.random()*0.45;
+  const baseOpac = 0.032 + Math.random() * 0.038;
+  const ray = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.04, 0.5+Math.random()*0.25, 5.5, 4, 1, true),
+    new THREE.MeshBasicMaterial({
+      color: [0x6d28d9, 0x4338ca, 0x7c3aed][i%3],
+      transparent: true, opacity: baseOpac,
+      blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide,
+    })
+  );
+  ray.position.set(Math.cos(ang)*off*0.35, -2.8, Math.sin(ang)*off*0.35);
+  ray.rotation.z = Math.cos(ang)*0.14; ray.rotation.x = Math.sin(ang)*0.14;
+  ray.userData = { baseOpac, phase: Math.random()*Math.PI*2 };
+  scene.add(ray); godRays.push(ray);
+}
+
+// ── DEEP GLOW SOURCE ────────────────────────────────────────────────────────
+[[0.38, 0xe0d0ff, 0.92, -8.0], [1.1, 0x4c1d95, 0.42, -7.8]].forEach(([r, c, op, y]) => {
+  const m = new THREE.Mesh(
+    new THREE.CircleGeometry(r, 32),
+    new THREE.MeshBasicMaterial({ color: c, blending: THREE.AdditiveBlending, depthWrite: false, transparent: true, opacity: op })
+  );
+  m.rotation.x = -Math.PI/2; m.position.y = y; scene.add(m);
+});
+
+// ── GROUND CRACK LINES ───────────────────────────────────────────────────────
+const crackMat = new THREE.LineBasicMaterial({ color: 0x4c1d95, transparent: true, opacity: 0.18, blending: THREE.AdditiveBlending });
+for (let c = 0; c < 22; c++) {
+  const pts = [], a0 = (c/22)*Math.PI*2 + (Math.random()-0.5)*0.25;
+  const len = 3.5 + Math.random()*7, steps = 6 + Math.floor(Math.random()*6);
+  let px = Math.cos(a0)*(RIM+0.12), pz = Math.sin(a0)*(RIM+0.12), a = a0;
+  pts.push(new THREE.Vector3(px, 0.01, pz));
+  for (let s = 0; s < steps; s++) {
+    a += (Math.random()-0.5)*0.5;
+    const st = len/steps;
+    px += Math.cos(a)*st; pz += Math.sin(a)*st;
+    pts.push(new THREE.Vector3(px, 0.01, pz));
+  }
+  scene.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), crackMat));
+}
+
+// ── SPIRAL PARTICLES ─────────────────────────────────────────────────────────
+const PC = 1600, posArr = new Float32Array(PC*3), pData = [];
+for (let i = 0; i < PC; i++) {
+  const depth = Math.random()*8, rf = 0.18+Math.random()*0.82;
+  const t = depth/8, r = RIM*rf*(1-t*0.85), ang = Math.random()*Math.PI*2;
+  posArr[i*3]=Math.cos(ang)*r; posArr[i*3+1]=-depth; posArr[i*3+2]=Math.sin(ang)*r;
+  pData.push({ angle:ang, baseRad:RIM*rf, depth, speed:0.004+Math.random()*0.01, fallSp:0.003+Math.random()*0.006 });
+}
+const particleGeo = new THREE.BufferGeometry();
+particleGeo.setAttribute('position', new THREE.BufferAttribute(posArr, 3));
+scene.add(new THREE.Points(particleGeo, new THREE.PointsMaterial({
+  color: 0xa78bfa, size: 0.038, transparent: true, opacity: 0.88,
+  blending: THREE.AdditiveBlending, depthWrite: false, sizeAttenuation: true,
+})));
+
+// ── SMOKE SPRITES ────────────────────────────────────────────────────────────
+function makeSmokeTex() {
+  const cv = document.createElement('canvas'); cv.width = cv.height = 128;
+  const cx = cv.getContext('2d');
+  const g = cx.createRadialGradient(64,64,0,64,64,62);
+  g.addColorStop(0,'rgba(105,30,170,0.9)'); g.addColorStop(0.38,'rgba(58,10,100,0.4)');
+  g.addColorStop(0.72,'rgba(18,0,38,0.1)'); g.addColorStop(1,'rgba(0,0,0,0)');
+  cx.fillStyle=g; cx.fillRect(0,0,128,128); return new THREE.CanvasTexture(cv);
+}
+const smokeTex = makeSmokeTex(), smokes = [];
+for (let i = 0; i < 16; i++) {
+  const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map:smokeTex, transparent:true, opacity:0, blending:THREE.AdditiveBlending, depthWrite:false }));
+  const a=Math.random()*Math.PI*2, r=Math.random()*1.85, s=1.6+Math.random()*2.2;
+  sp.position.set(Math.cos(a)*r, -Math.random()*3.5-0.5, Math.sin(a)*r);
+  sp.scale.set(s,s,1);
+  sp.userData={ speed:0.0045+Math.random()*0.006, wobAmp:0.009+Math.random()*0.013, wobFreq:0.28+Math.random()*0.48, maxOpac:0.058+Math.random()*0.072, phase:Math.random()*Math.PI*2 };
+  scene.add(sp); smokes.push(sp);
+}
+function resetSmoke(sp) {
+  const a=Math.random()*Math.PI*2, r=Math.random()*1.85;
+  sp.position.set(Math.cos(a)*r, -3.8-Math.random()*2, Math.sin(a)*r); sp.material.opacity=0;
+}
+
+// ── STARFIELD ────────────────────────────────────────────────────────────────
+const sPosArr = new Float32Array(1800*3);
+for (let i=0;i<1800;i++) {
+  const th=Math.random()*Math.PI*2, ph=Math.acos(2*Math.random()-1), r=55+Math.random()*10;
+  sPosArr[i*3]=r*Math.sin(ph)*Math.cos(th); sPosArr[i*3+1]=r*Math.sin(ph)*Math.sin(th); sPosArr[i*3+2]=r*Math.cos(ph);
+}
+const sGeo = new THREE.BufferGeometry(); sGeo.setAttribute('position', new THREE.BufferAttribute(sPosArr,3));
+scene.add(new THREE.Points(sGeo, new THREE.PointsMaterial({ color:0xc8b8ff, size:0.22, transparent:true, opacity:0.55, blending:THREE.AdditiveBlending, depthWrite:false })));
+
+// ── SCREEN-SPACE VOID DETECTION ──────────────────────────────────────────────
+let voidInfo = { cx:W*0.5, cy:H*0.62, rx:160, ry:90 };
+function updateVoidScreenInfo() {
+  const c=new THREE.Vector3(0,0,0).project(camera);
+  const r=new THREE.Vector3(RIM,0,0).project(camera);
+  const f=new THREE.Vector3(0,0,RIM).project(camera);
+  const cx=(c.x*0.5+0.5)*W, cy=(-c.y*0.5+0.5)*H;
+  const rpx=(r.x*0.5+0.5)*W, rpy=(-r.y*0.5+0.5)*H;
+  const fpx=(f.x*0.5+0.5)*W, fpy=(-f.y*0.5+0.5)*H;
+  voidInfo={ cx, cy, rx:Math.sqrt((rpx-cx)**2+(rpy-cy)**2), ry:Math.sqrt((fpx-cx)**2+(fpy-cy)**2) };
+}
+function isOverVoid(x, y) {
+  const {cx,cy,rx,ry}=voidInfo;
+  return ((x-cx)/(rx*1.35))**2 + ((y-cy)/(ry*1.35))**2 <= 1;
+}
+
+// ── 2D FX PARTICLES ──────────────────────────────────────────────────────────
+const fxParticles=[], shockwaves=[];
+function spawnBurst(x, y) {
+  const clrs=['#c084fc','#a855f7','#7c3aed','#e9d5ff','#ddd6fe','#f5f3ff','#ffffff','#818cf8'];
+  for (let i=0;i<65;i++) {
+    const ang=Math.random()*Math.PI*2, spd=3+Math.random()*7;
+    fxParticles.push({ x, y, vx:Math.cos(ang)*spd, vy:Math.sin(ang)*spd-1.5, size:2+Math.random()*5.5,
+      color:clrs[Math.floor(Math.random()*clrs.length)], life:1, decay:0.018+Math.random()*0.024, grav:0.14 });
+  }
+}
+function spawnShockwave(x, y) { shockwaves.push({ x, y, r:10, maxR:voidInfo.rx*2.2, life:1 }); }
+
+function drawFX() {
+  fxCtx.clearRect(0,0,W,H);
+  // Shockwaves
+  for (let i=shockwaves.length-1;i>=0;i--) {
+    const s=shockwaves[i];
+    fxCtx.globalAlpha=s.life*0.5*(1-s.r/s.maxR);
+    fxCtx.beginPath(); fxCtx.ellipse(s.x,s.y,s.r,s.r*0.55,0,0,Math.PI*2);
+    fxCtx.strokeStyle='#a78bfa'; fxCtx.lineWidth=2*s.life; fxCtx.stroke();
+    s.r+=(s.maxR-s.r)*0.1+6; s.life-=0.045;
+    if(s.life<=0) shockwaves.splice(i,1);
+  }
+  // Burst particles
+  for (let i=fxParticles.length-1;i>=0;i--) {
+    const p=fxParticles[i];
+    fxCtx.globalAlpha=Math.max(0,p.life);
+    fxCtx.beginPath(); fxCtx.arc(p.x,p.y,p.size*p.life,0,Math.PI*2);
+    fxCtx.fillStyle=p.color; fxCtx.fill();
+    fxCtx.globalAlpha=Math.max(0,p.life*0.35);
+    fxCtx.beginPath(); fxCtx.arc(p.x,p.y,p.size*p.life*2.8,0,Math.PI*2);
+    fxCtx.fillStyle=p.color; fxCtx.fill();
+    p.x+=p.vx; p.y+=p.vy; p.vy+=p.grav; p.vx*=0.97; p.life-=p.decay;
+    if(p.life<=0) fxParticles.splice(i,1);
+  }
+  fxCtx.globalAlpha=1;
+}
+
+// ── CONSUME CARD ─────────────────────────────────────────────────────────────
+let consumed = 0;
+function consumeCard(card) {
+  const rect=card.getBoundingClientRect();
+  const ccx=rect.left+rect.width/2, ccy=rect.top+rect.height/2;
+  const {cx,cy}=voidInfo;
+  const tx=cx-ccx, ty=cy-ccy;
+  const spin=(Math.random()-0.5)*600;
+  const t0=card.style.transform||'none';
+  card.style.setProperty('--t0',t0);
+  card.style.setProperty('--t1',`translateX(${tx*0.72}px) translateY(${ty*0.72}px) scale(0.18) rotate(${spin*0.7}deg) rotateX(50deg)`);
+  card.style.setProperty('--t2',`translateX(${tx}px) translateY(${ty}px) scale(0) rotate(${spin}deg) rotateX(90deg)`);
+  card.style.transform=t0;
+  card.style.animation='suckInto 0.68s cubic-bezier(0.5,0,0.78,-0.15) forwards';
+
+  spawnBurst(ccx,ccy); spawnShockwave(cx,cy);
+
+  voidFlash.classList.remove('flash'); void voidFlash.offsetWidth;
+  voidFlash.style.setProperty('--vx',cx+'px'); voidFlash.style.setProperty('--vy',cy+'px');
+  voidFlash.classList.add('flash');
+
+  voidDeep.intensity=55; rimLight.intensity=22;
+  if(navigator.vibrate) navigator.vibrate([18,8,45]);
+
+  consumed++; countNum.textContent=consumed;
+  setTimeout(()=>card.remove(), 720);
+}
+
+// ── PHOTO CARDS ──────────────────────────────────────────────────────────────
+function createCard(src) {
+  const card=document.createElement('div'); card.className='photo-card';
+  const img=document.createElement('img'); img.src=src;
+  const maxSz=Math.min(W,H)*(0.18+Math.random()*0.11);
+  img.style.cssText=`width:${maxSz}px;height:${maxSz}px;object-fit:cover;`;
+  card.appendChild(img); document.body.appendChild(card);
+
+  const x=22+Math.random()*(W-maxSz-44);
+  const y=175+Math.random()*(H*0.54-175-maxSz);
+  const rot=(Math.random()-0.5)*28;
+  card.style.left=x+'px'; card.style.top=y+'px';
+  card.style.transform=`rotate(${rot}deg)`;
+  card.style.setProperty('--cr',`rotate(${rot}deg)`);
+  card.style.opacity='0';
+  card.style.animation='dropIn 0.5s cubic-bezier(0.34,1.56,0.64,1) forwards';
+  setupDrag(card, rot);
+}
+
+function setupDrag(card, initRot) {
+  let active=false, sx,sy,sl,st,vx=0,vy=0,lx,ly,lt;
+  function pos(e){ return e.touches?{x:e.touches[0].clientX,y:e.touches[0].clientY}:{x:e.clientX,y:e.clientY}; }
+
+  function onStart(e) {
+    e.preventDefault(); active=true;
+    card.style.animation='none'; card.style.transition='none'; card.style.zIndex='50';
+    const p=pos(e); sx=p.x; sy=p.y; sl=parseFloat(card.style.left)||0; st=parseFloat(card.style.top)||0;
+    lx=p.x; ly=p.y; lt=performance.now(); vx=vy=0;
+  }
+  function onMove(e) {
+    if(!active) return; e.preventDefault();
+    const p=pos(e), now=performance.now(), dt=now-lt;
+    if(dt>0){vx=(p.x-lx)/dt*16; vy=(p.y-ly)/dt*16;}
+    lx=p.x; ly=p.y; lt=now;
+    const nl=sl+(p.x-sx), nt=st+(p.y-sy);
+    card.style.left=nl+'px'; card.style.top=nt+'px';
+    const tilt=Math.max(-38,Math.min(38,vx*1.6));
+    card.style.transform=`rotate(${tilt}deg) scale(1.05)`;
+    const over=isOverVoid(nl+card.offsetWidth/2, nt+card.offsetHeight/2);
+    card.classList.toggle('over-void',over);
+    voidDeep.intensity=over?32:20; rimLight.intensity=over?14:7;
+  }
+  function onEnd() {
+    if(!active) return; active=false; card.style.zIndex='15';
+    card.classList.remove('over-void'); voidDeep.intensity=20; rimLight.intensity=7;
+    const cx2=parseFloat(card.style.left)+card.offsetWidth/2;
+    const cy2=parseFloat(card.style.top)+card.offsetHeight/2;
+    if(isOverVoid(cx2,cy2)) consumeCard(card);
+    else {
+      card.style.transition='transform 0.45s cubic-bezier(0.34,1.4,0.64,1)';
+      card.style.transform=`rotate(${(Math.random()-0.5)*20}deg) scale(1)`;
+    }
+  }
+  card.addEventListener('mousedown',onStart);
+  card.addEventListener('touchstart',onStart,{passive:false});
+  document.addEventListener('mousemove',onMove);
+  document.addEventListener('touchmove',onMove,{passive:false});
+  document.addEventListener('mouseup',onEnd);
+  document.addEventListener('touchend',onEnd);
+}
+
+document.getElementById('file-input').addEventListener('change', e=>{
+  Array.from(e.target.files).forEach((f,i)=>{
+    const rd=new FileReader(); rd.onload=ev=>setTimeout(()=>createCard(ev.target.result),i*130); rd.readAsDataURL(f);
+  }); e.target.value='';
+});
+
+// ── MAIN ANIMATION LOOP ──────────────────────────────────────────────────────
+let clock=0, lastTs=0;
+const tmpV = new THREE.Vector3();
+
+function animate(ts) {
+  requestAnimationFrame(animate);
+  const dt=Math.min((ts-lastTs)/1000,0.05); lastTs=ts; clock+=dt;
+
+  // Cinematic camera sway
+  camera.position.x=CAM_BASE.x+Math.sin(clock*0.21)*0.28;
+  camera.position.y=CAM_BASE.y+Math.sin(clock*0.34)*0.18;
+  camera.position.z=CAM_BASE.z+Math.sin(clock*0.17)*0.12;
+  camera.lookAt(CAM_LOOK);
+
+  // Pulse lights back to base
+  voidDeep.intensity=Math.max(voidDeep.intensity-0.9, 20+Math.sin(clock*1.75)*5+Math.sin(clock*3.2)*2);
+  rimLight.intensity=Math.max(rimLight.intensity-0.45, 7+Math.sin(clock*2.3+1)*2);
+
+  // Rim rotation
+  rimMesh.rotation.z += 0.00085;
+
+  // Depth ring rotation
+  depthRings.forEach(r=>{ r.rotation.z+=r.userData.spd; });
+
+  // God ray pulse
+  godRays.forEach((ray,i)=>{
+    ray.material.opacity=ray.userData.baseOpac*(0.7+0.6*Math.sin(clock*0.75+ray.userData.phase));
+    ray.rotation.y+=0.0025*(i%2===0?1:-1);
+  });
+
+  // Particles spiral descent
+  for(let i=0;i<PC;i++) {
+    const p=pData[i];
+    p.angle+=p.speed; p.depth+=p.fallSp;
+    if(p.depth>8.2){ p.depth=Math.random()*0.4; p.angle=Math.random()*Math.PI*2; }
+    const td=p.depth/8, r=p.baseRad*Math.max(0.04,1-td*0.87);
+    posArr[i*3]=Math.cos(p.angle)*r; posArr[i*3+1]=-p.depth; posArr[i*3+2]=Math.sin(p.angle)*r;
+  }
+  particleGeo.attributes.position.needsUpdate=true;
+
+  // Smoke wisps
+  smokes.forEach(sp=>{
+    sp.position.y+=sp.userData.speed;
+    sp.position.x+=Math.sin(clock*sp.userData.wobFreq+sp.userData.phase)*sp.userData.wobAmp;
+    const prog=(sp.position.y+3.8)/5.0;
+    sp.material.opacity=sp.userData.maxOpac*Math.sin(Math.max(0,Math.min(1,prog))*Math.PI);
+    if(sp.position.y>1.4) resetSmoke(sp);
+  });
+
+  updateVoidScreenInfo();
+  drawFX();
+  renderer.render(scene, camera);
+}
+
+updateVoidScreenInfo();
+requestAnimationFrame(animate);
+
+window.addEventListener('resize',()=>{
+  W=window.innerWidth; H=window.innerHeight;
+  camera.aspect=W/H; camera.updateProjectionMatrix();
+  renderer.setSize(W,H); fxCanvas.width=W; fxCanvas.height=H;
+  updateVoidScreenInfo();
+});
+
+// Ambient life – occasional rim sparks
+setInterval(()=>{
+  if(Math.random()<0.3 && fxParticles.length<25) {
+    const a=Math.random()*Math.PI*2, {cx,cy,rx,ry}=voidInfo;
+    const x=cx+Math.cos(a)*rx*0.92, y=cy+Math.sin(a)*ry*0.92;
+    for(let i=0;i<8;i++) {
+      const ang=Math.random()*Math.PI*2, spd=1+Math.random()*3;
+      fxParticles.push({ x, y, vx:Math.cos(ang)*spd, vy:Math.sin(ang)*spd-0.5,
+        size:1+Math.random()*2.5, color:'#c084fc', life:1, decay:0.03+Math.random()*0.04, grav:0.09 });
+    }
+  }
+}, 2800);
+</script>
+</body>
+</html>
