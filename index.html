@@ -1,0 +1,1145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+<title>Codex — Notes</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,600&family=Crimson+Pro:ital,wght@0,300;0,400;0,600;1,300;1,400&family=IBM+Plex+Mono:wght@300;400;500&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:          #060503;
+  --leather:     #0c0904;
+  --leather-mid: #141009;
+  --leather-rim: #1e170f;
+  --gold:        #c9a460;
+  --gold-dim:    #8a7040;
+  --gold-faint:  rgba(201,164,96,0.08);
+  --page:        #fafaf7;
+  --page-warm:   #f5f0e6;
+  --ink:         #17120d;
+  --ink-mid:     #3d342a;
+  --ink-soft:    #7a6e62;
+  --ink-faint:   #b0a898;
+  --rule:        rgba(100,120,180,0.09);
+  --spine:       rgba(201,164,96,0.15);
+  --shadow:      rgba(0,0,0,0.6);
+}
+
+html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--ink);}
+
+/* ── GRAIN OVERLAY ── */
+body::after{
+  content:'';position:fixed;inset:0;
+  background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)' opacity='0.035'/%3E%3C/svg%3E");
+  pointer-events:none;z-index:9999;
+}
+
+/* ══════════════════════════════════ LOADING ══ */
+#loading{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;z-index:1000;transition:opacity 0.5s;}
+#loading.out{opacity:0;pointer-events:none;}
+.load-emblem{display:flex;flex-direction:column;align-items:center;gap:20px;}
+.load-emblem svg{opacity:0.6;animation:loadPulse 1.8s ease-in-out infinite;}
+.load-emblem span{font-family:'IBM Plex Mono',monospace;font-size:0.65rem;font-weight:300;letter-spacing:0.3em;color:var(--gold-dim);text-transform:uppercase;}
+@keyframes loadPulse{0%,100%{opacity:0.4}50%{opacity:0.9}}
+
+/* ══════════════════════════════════ AUTH ══ */
+#auth-screen{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:0;z-index:500;}
+#auth-screen.hidden{display:none;}
+
+.auth-bg{position:absolute;inset:0;
+  background:radial-gradient(ellipse 80% 60% at 50% 40%, rgba(201,164,96,0.06) 0%, transparent 70%);
+}
+
+.auth-card{
+  position:relative;z-index:1;
+  display:flex;flex-direction:column;align-items:center;gap:56px;
+  padding:72px 80px;
+  background:linear-gradient(160deg, var(--leather-mid) 0%, var(--leather) 100%);
+  border:1px solid var(--leather-rim);
+  border-radius:4px;
+  box-shadow:0 80px 160px rgba(0,0,0,0.8), 0 0 0 1px rgba(201,164,96,0.06), inset 0 1px 0 rgba(201,164,96,0.1);
+  max-width:420px;width:90%;
+}
+
+.auth-mark{display:flex;flex-direction:column;align-items:center;gap:20px;}
+.auth-mark .icon-wrap{
+  width:72px;height:72px;
+  background:var(--gold-faint);
+  border:1px solid rgba(201,164,96,0.2);
+  border-radius:2px;
+  display:flex;align-items:center;justify-content:center;
+}
+.auth-mark h1{
+  font-family:'Cormorant Garamond',serif;
+  font-size:2.8rem;font-weight:600;letter-spacing:0.08em;
+  color:#e8dcc8;text-transform:uppercase;line-height:1;
+}
+.auth-mark p{
+  font-family:'IBM Plex Mono',monospace;font-size:0.65rem;font-weight:300;
+  letter-spacing:0.22em;color:var(--gold-dim);text-transform:uppercase;
+}
+.auth-rule{width:1px;height:40px;background:linear-gradient(to bottom,transparent,var(--spine),transparent);}
+
+.google-btn{
+  display:flex;align-items:center;gap:14px;
+  background:transparent;
+  border:1px solid rgba(201,164,96,0.3);
+  border-radius:3px;
+  padding:16px 28px;
+  font-family:'IBM Plex Mono',monospace;font-size:0.72rem;font-weight:400;letter-spacing:0.1em;
+  color:#c8bfb0;text-transform:uppercase;cursor:pointer;
+  transition:all 0.25s ease;
+  width:100%;justify-content:center;
+}
+.google-btn:hover{background:rgba(201,164,96,0.08);border-color:var(--gold);color:var(--gold);box-shadow:0 0 40px rgba(201,164,96,0.1);}
+.google-btn svg{width:18px;height:18px;flex-shrink:0;}
+
+/* ══════════════════════════════════ APP SHELL ══ */
+#app{display:flex;height:100vh;overflow:hidden;}
+#app.hidden{display:none;}
+
+/* ══════════════════════════════════ SIDEBAR ══ */
+.sidebar{
+  width:260px;flex-shrink:0;
+  background:var(--leather);
+  border-right:1px solid var(--leather-rim);
+  display:flex;flex-direction:column;
+  position:relative;
+  box-shadow:inset -1px 0 0 rgba(201,164,96,0.06);
+}
+
+/* Leather texture lines */
+.sidebar::before{
+  content:'';position:absolute;inset:0;pointer-events:none;
+  background:repeating-linear-gradient(180deg,transparent 0px,transparent 3px,rgba(255,255,255,0.008) 3px,rgba(255,255,255,0.008) 4px);
+  z-index:0;
+}
+
+.sidebar-head{
+  position:relative;z-index:1;
+  padding:36px 24px 24px;
+  border-bottom:1px solid var(--leather-rim);
+}
+.sidebar-wordmark{
+  display:flex;align-items:baseline;gap:8px;margin-bottom:20px;
+}
+.sidebar-wordmark span{
+  font-family:'Cormorant Garamond',serif;font-size:1.3rem;font-weight:600;
+  letter-spacing:0.12em;color:#d4c8b0;text-transform:uppercase;
+}
+.sidebar-wordmark sub{
+  font-family:'IBM Plex Mono',monospace;font-size:0.55rem;font-weight:300;
+  letter-spacing:0.15em;color:var(--gold-dim);text-transform:uppercase;vertical-align:baseline;
+}
+
+.new-btn{
+  width:100%;padding:11px 16px;
+  background:rgba(201,164,96,0.08);
+  border:1px solid rgba(201,164,96,0.2);border-radius:2px;
+  font-family:'IBM Plex Mono',monospace;font-size:0.65rem;font-weight:400;letter-spacing:0.12em;
+  color:var(--gold);text-transform:uppercase;cursor:pointer;
+  display:flex;align-items:center;gap:10px;
+  transition:all 0.2s;
+}
+.new-btn:hover{background:rgba(201,164,96,0.14);border-color:var(--gold);}
+.new-btn:active{transform:scale(0.99);}
+.new-btn-icon{font-size:1rem;line-height:1;}
+
+.note-scroll{flex:1;overflow-y:auto;position:relative;z-index:1;}
+.note-scroll::-webkit-scrollbar{width:3px;}
+.note-scroll::-webkit-scrollbar-track{background:transparent;}
+.note-scroll::-webkit-scrollbar-thumb{background:var(--leather-rim);}
+
+.note-item{
+  padding:18px 24px;
+  border-bottom:1px solid rgba(255,255,255,0.03);
+  cursor:pointer;
+  position:relative;
+  transition:background 0.15s;
+}
+.note-item::before{
+  content:'';position:absolute;left:0;top:0;bottom:0;width:2px;
+  background:var(--gold);transform:scaleY(0);transition:transform 0.2s;
+}
+.note-item:hover{background:rgba(255,255,255,0.02);}
+.note-item.active{background:rgba(201,164,96,0.06);}
+.note-item.active::before{transform:scaleY(1);}
+
+.ni-title{
+  font-family:'Cormorant Garamond',serif;font-size:0.95rem;font-weight:500;
+  color:#c8bfb0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:5px;
+}
+.ni-preview{
+  font-family:'IBM Plex Mono',monospace;font-size:0.62rem;font-weight:300;
+  color:#4a4038;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.ni-date{
+  font-family:'IBM Plex Mono',monospace;font-size:0.58rem;font-weight:300;
+  color:#2e2820;margin-top:6px;
+}
+.ni-del{
+  position:absolute;right:14px;top:50%;transform:translateY(-50%);
+  background:none;border:none;color:rgba(201,164,96,0.3);
+  font-size:0.75rem;cursor:pointer;padding:6px;opacity:0;transition:opacity 0.15s;
+}
+.note-item:hover .ni-del{opacity:1;}
+.ni-del:hover{color:var(--gold)!important;opacity:1!important;}
+
+.empty-sidebar{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px;gap:12px;text-align:center;}
+.empty-sidebar .es-icon{font-size:2rem;opacity:0.15;}
+.empty-sidebar p{font-family:'IBM Plex Mono',monospace;font-size:0.62rem;font-weight:300;color:#2e2820;letter-spacing:0.05em;line-height:1.8;}
+
+.sidebar-foot{
+  position:relative;z-index:1;
+  padding:16px 20px;border-top:1px solid var(--leather-rim);
+  display:flex;align-items:center;gap:12px;
+}
+.user-avatar{width:28px;height:28px;border-radius:2px;object-fit:cover;border:1px solid var(--leather-rim);flex-shrink:0;}
+.user-init{width:28px;height:28px;border-radius:2px;background:rgba(201,164,96,0.1);border:1px solid rgba(201,164,96,0.2);display:flex;align-items:center;justify-content:center;font-family:'Cormorant Garamond',serif;font-size:0.9rem;font-weight:600;color:var(--gold);flex-shrink:0;}
+.user-name-sm{font-family:'IBM Plex Mono',monospace;font-size:0.62rem;font-weight:300;color:#5a5040;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.signout-btn{background:none;border:none;color:#3a3028;font-family:'IBM Plex Mono',monospace;font-size:0.6rem;font-weight:300;letter-spacing:0.08em;text-transform:uppercase;cursor:pointer;flex-shrink:0;padding:4px;transition:color 0.15s;}
+.signout-btn:hover{color:var(--gold);}
+
+/* ══════════════════════════════════ EDITOR SHELL ══ */
+.editor-shell{flex:1;display:flex;flex-direction:column;overflow:hidden;background:var(--bg);}
+
+/* Toolbar */
+.toolbar{
+  height:52px;flex-shrink:0;
+  display:flex;align-items:center;gap:0;
+  background:var(--leather);
+  border-bottom:1px solid var(--leather-rim);
+  padding:0 20px;
+}
+.tb-section{display:flex;align-items:center;gap:4px;}
+.tb-div{width:1px;height:18px;background:var(--leather-rim);margin:0 12px;}
+
+.tb-btn{
+  width:32px;height:32px;background:none;border:none;border-radius:3px;
+  display:flex;align-items:center;justify-content:center;cursor:pointer;
+  color:#4a4038;transition:all 0.15s;font-family:'IBM Plex Mono',monospace;font-size:0.7rem;
+}
+.tb-btn:hover{background:rgba(255,255,255,0.04);color:#c8bfb0;}
+.tb-btn.active{background:rgba(201,164,96,0.1);color:var(--gold);border:1px solid rgba(201,164,96,0.2);}
+
+.mode-pills{display:flex;gap:0;background:rgba(0,0,0,0.3);border:1px solid var(--leather-rim);border-radius:3px;overflow:hidden;}
+.mode-pill{
+  padding:6px 14px;background:none;border:none;cursor:pointer;
+  font-family:'IBM Plex Mono',monospace;font-size:0.6rem;font-weight:400;letter-spacing:0.1em;
+  text-transform:uppercase;color:#3a3028;transition:all 0.2s;
+}
+.mode-pill.active{background:rgba(201,164,96,0.1);color:var(--gold);}
+
+.pen-tools{display:flex;align-items:center;gap:4px;}
+.pen-btn{
+  width:28px;height:28px;background:none;border:1px solid transparent;border-radius:3px;
+  display:flex;align-items:center;justify-content:center;cursor:pointer;
+  transition:all 0.15s;color:#4a4038;font-size:0.85rem;
+}
+.pen-btn:hover{background:rgba(255,255,255,0.04);color:#c8bfb0;}
+.pen-btn.active{background:rgba(201,164,96,0.1);border-color:rgba(201,164,96,0.3);color:var(--gold);}
+
+.color-swatch{width:18px;height:18px;border-radius:50%;border:2px solid rgba(255,255,255,0.15);cursor:pointer;flex-shrink:0;transition:transform 0.15s;}
+.color-swatch:hover{transform:scale(1.15);}
+.color-swatch.active{border-color:var(--gold);}
+
+.tb-spacer{flex:1;}
+.save-badge{
+  font-family:'IBM Plex Mono',monospace;font-size:0.58rem;font-weight:300;
+  letter-spacing:0.1em;text-transform:uppercase;
+  display:flex;align-items:center;gap:7px;opacity:0;transition:opacity 0.3s;
+}
+.save-badge.show{opacity:1;}
+.save-badge.saving{color:var(--gold-dim);}
+.save-badge.saved{color:#5a8a5a;}
+.save-dot{width:5px;height:5px;border-radius:50%;background:currentColor;}
+
+/* ══════════════════════════════════ PAGE STAGE ══ */
+.page-stage{
+  flex:1;overflow:hidden;
+  display:flex;align-items:center;justify-content:center;
+  perspective:3000px;
+  background:radial-gradient(ellipse at center, #0e0b07 0%, #060503 100%);
+  padding:40px;
+}
+
+.page-viewport{
+  width:min(720px, 100%);
+  height:min(960px, 100%);
+  position:relative;
+  transform-style:preserve-3d;
+}
+
+/* Page shadows */
+.page-viewport::before{
+  content:'';
+  position:absolute;bottom:-20px;left:50%;transform:translateX(-50%);
+  width:85%;height:40px;
+  background:radial-gradient(ellipse, rgba(0,0,0,0.5) 0%, transparent 70%);
+  pointer-events:none;
+  filter:blur(8px);
+}
+
+/* Page flip animation */
+.page-wrap{
+  position:absolute;inset:0;
+  transform-style:preserve-3d;
+  transform-origin:left center;
+  will-change:transform;
+}
+.page-wrap.flip-out{animation:flipOut 0.35s cubic-bezier(0.4,0,1,1) forwards;}
+.page-wrap.flip-in{animation:flipIn 0.35s cubic-bezier(0,0,0.6,1) forwards;}
+
+@keyframes flipOut{
+  0%  {transform:rotateY(0deg);   filter:drop-shadow(0 20px 60px rgba(0,0,0,0.4));}
+  60% {transform:rotateY(-88deg); filter:drop-shadow(-30px 20px 40px rgba(0,0,0,0.7));}
+  100%{transform:rotateY(-91deg); filter:none;}
+}
+@keyframes flipIn{
+  0%  {transform:rotateY(91deg);  filter:none;}
+  40% {transform:rotateY(88deg);  filter:drop-shadow(-30px 20px 40px rgba(0,0,0,0.6));}
+  100%{transform:rotateY(0deg);   filter:drop-shadow(0 20px 60px rgba(0,0,0,0.3));}
+}
+
+/* The actual paper page */
+.page{
+  width:100%;height:100%;
+  background:var(--page);
+  border-radius:1px 3px 3px 1px;
+  position:relative;overflow:hidden;
+  box-shadow:inset -1px 0 0 rgba(0,0,0,0.08), inset 0 0 0 1px rgba(0,0,0,0.04);
+  display:flex;flex-direction:column;
+}
+
+/* Ruled lines */
+.page::before{
+  content:'';position:absolute;inset:0;pointer-events:none;z-index:0;
+  background-image:repeating-linear-gradient(to bottom, transparent 0px, transparent 33px, var(--rule) 33px, var(--rule) 34px);
+  background-position:0 88px;
+}
+
+/* Left margin line */
+.page::after{
+  content:'';position:absolute;left:72px;top:0;bottom:0;
+  width:1px;background:rgba(200,50,50,0.08);pointer-events:none;z-index:0;
+}
+
+/* Page edge shadow (left binding) */
+.page-binding{
+  position:absolute;left:0;top:0;bottom:0;width:72px;
+  background:linear-gradient(to right, rgba(0,0,0,0.025), transparent);
+  pointer-events:none;z-index:2;
+}
+
+/* Flip shadow overlay */
+.page-flip-shadow{
+  position:absolute;inset:0;background:linear-gradient(to right, rgba(0,0,0,0.12), transparent 40%);
+  pointer-events:none;z-index:10;opacity:0;transition:opacity 0.35s;
+}
+.page-wrap.flip-out .page-flip-shadow,
+.page-wrap.flip-in .page-flip-shadow{opacity:1;}
+
+.page-inner{
+  position:relative;z-index:1;
+  flex:1;overflow-y:auto;
+  padding:56px 60px 56px 96px;
+  display:flex;flex-direction:column;gap:0;
+}
+.page-inner::-webkit-scrollbar{width:4px;}
+.page-inner::-webkit-scrollbar-thumb{background:rgba(0,0,0,0.08);border-radius:2px;}
+
+#note-title{
+  font-family:'Cormorant Garamond',serif;
+  font-size:clamp(1.8rem,4vw,2.6rem);font-weight:600;
+  line-height:1.25;color:var(--ink);
+  background:none;border:none;outline:none;
+  width:100%;resize:none;overflow:hidden;
+  margin-bottom:28px;min-height:1.25em;
+}
+#note-title::placeholder{color:var(--ink-faint);opacity:0.35;}
+
+#note-body{
+  font-family:'Crimson Pro',serif;
+  font-size:1.1rem;font-weight:300;line-height:2.06;
+  color:var(--ink-mid);
+  background:none;border:none;outline:none;
+  width:100%;flex:1;resize:none;min-height:300px;
+}
+#note-body::placeholder{color:var(--ink-faint);opacity:0.3;font-style:italic;}
+
+/* Canvas overlay */
+#draw-canvas{
+  position:absolute;inset:0;z-index:5;
+  touch-action:none;cursor:crosshair;
+  display:none;
+}
+#draw-canvas.active{display:block;}
+
+/* Page number */
+.page-num{
+  padding:8px 12px 10px 96px;
+  font-family:'IBM Plex Mono',monospace;font-size:0.58rem;font-weight:300;
+  color:var(--ink-faint);opacity:0.4;letter-spacing:0.08em;
+  flex-shrink:0;
+  border-top:1px solid var(--rule);
+}
+
+/* ══════════════════════════════════ EMPTY STATE ══ */
+.empty-page{
+  flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:20px;padding:60px;
+}
+.empty-page .ep-mark{font-family:'Cormorant Garamond',serif;font-size:5rem;opacity:0.06;font-weight:700;line-height:1;color:var(--ink);}
+.empty-page p{font-family:'IBM Plex Mono',monospace;font-size:0.65rem;font-weight:300;color:var(--ink-faint);opacity:0.4;letter-spacing:0.08em;text-align:center;line-height:2;}
+
+/* ══════════════════════════════════ PENCIL INDICATOR ══ */
+.stylus-indicator{
+  position:fixed;bottom:24px;left:50%;transform:translateX(-50%);
+  background:rgba(0,0,0,0.75);backdrop-filter:blur(8px);
+  border:1px solid rgba(201,164,96,0.2);border-radius:40px;
+  padding:8px 18px;
+  font-family:'IBM Plex Mono',monospace;font-size:0.62rem;font-weight:300;
+  letter-spacing:0.1em;color:var(--gold);text-transform:uppercase;
+  display:flex;align-items:center;gap:8px;
+  opacity:0;transition:opacity 0.3s;pointer-events:none;z-index:100;
+}
+.stylus-indicator.show{opacity:1;}
+.si-dot{width:6px;height:6px;border-radius:50%;background:var(--gold);animation:siPulse 1s ease-in-out infinite;}
+@keyframes siPulse{0%,100%{opacity:1}50%{opacity:0.3}}
+
+/* ══════════════════════════════════ TOAST ══ */
+.toast{
+  position:fixed;bottom:28px;right:28px;
+  background:var(--leather-mid);border:1px solid var(--leather-rim);
+  color:#c8bfb0;border-radius:3px;padding:12px 20px;
+  font-family:'IBM Plex Mono',monospace;font-size:0.68rem;font-weight:300;letter-spacing:0.06em;
+  opacity:0;transform:translateY(8px);transition:all 0.25s;pointer-events:none;z-index:200;
+  box-shadow:0 20px 60px rgba(0,0,0,0.5);
+}
+.toast.show{opacity:1;transform:translateY(0);}
+
+/* ══════════════════════════════════ RESPONSIVE ══ */
+@media(max-width:700px){
+  .sidebar{position:absolute;inset:0 auto 0 0;z-index:50;transform:translateX(-100%);transition:transform 0.3s;}
+  .sidebar.open{transform:translateX(0);}
+  .page-stage{padding:0;}
+  .page-viewport{width:100%;height:100%;border-radius:0;}
+  .page-inner{padding:40px 28px 40px 44px;}
+  .page::after{left:36px;}
+  .page-num{padding-left:44px;}
+}
+</style>
+</head>
+<body>
+
+<!-- LOADING -->
+<div id="loading">
+  <div class="load-emblem">
+    <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect x="8" y="4" width="24" height="32" rx="1" stroke="#c9a460" stroke-width="1.2"/>
+      <line x1="14" y1="13" x2="26" y2="13" stroke="#c9a460" stroke-width="0.8" opacity="0.5"/>
+      <line x1="14" y1="18" x2="26" y2="18" stroke="#c9a460" stroke-width="0.8" opacity="0.5"/>
+      <line x1="14" y1="23" x2="22" y2="23" stroke="#c9a460" stroke-width="0.8" opacity="0.5"/>
+      <line x1="10" y1="4" x2="10" y2="36" stroke="#c9a460" stroke-width="1.8" opacity="0.3"/>
+    </svg>
+    <span>Codex</span>
+  </div>
+</div>
+
+<!-- AUTH -->
+<div id="auth-screen">
+  <div class="auth-bg"></div>
+  <div class="auth-card">
+    <div class="auth-mark">
+      <div class="icon-wrap">
+        <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect x="6" y="2" width="20" height="28" rx="1" stroke="#c9a460" stroke-width="1.2"/>
+          <line x1="10" y1="10" x2="22" y2="10" stroke="#c9a460" stroke-width="0.8" opacity="0.6"/>
+          <line x1="10" y1="15" x2="22" y2="15" stroke="#c9a460" stroke-width="0.8" opacity="0.6"/>
+          <line x1="10" y1="20" x2="18" y2="20" stroke="#c9a460" stroke-width="0.8" opacity="0.6"/>
+          <line x1="8" y1="2" x2="8" y2="30" stroke="#c9a460" stroke-width="2" opacity="0.25"/>
+        </svg>
+      </div>
+      <h1>Codex</h1>
+      <p>Private Notes — Est. 2025</p>
+    </div>
+    <div class="auth-rule"></div>
+    <button class="google-btn" id="google-login-btn">
+      <svg viewBox="0 0 24 24"><path fill="currentColor" opacity="0.5" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="currentColor" opacity="0.5" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="currentColor" opacity="0.5" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="currentColor" opacity="0.5" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+      Sign in with Google
+    </button>
+  </div>
+</div>
+
+<!-- MAIN APP -->
+<div id="app" class="hidden">
+
+  <!-- SIDEBAR -->
+  <div class="sidebar" id="sidebar">
+    <div class="sidebar-head">
+      <div class="sidebar-wordmark">
+        <span>Codex</span>
+        <sub>Notes</sub>
+      </div>
+      <button class="new-btn" id="new-note-btn">
+        <span class="new-btn-icon">+</span>
+        <span>New note</span>
+      </button>
+    </div>
+    <div class="note-scroll" id="note-scroll">
+      <div class="empty-sidebar">
+        <div class="es-icon">📓</div>
+        <p>No notes yet.<br/>Begin writing.</p>
+      </div>
+    </div>
+    <div class="sidebar-foot">
+      <div id="user-avatar-slot"></div>
+      <span class="user-name-sm" id="user-name-sm"></span>
+      <button class="signout-btn" id="signout-btn">Out</button>
+    </div>
+  </div>
+
+  <!-- EDITOR -->
+  <div class="editor-shell">
+
+    <!-- TOOLBAR -->
+    <div class="toolbar">
+      <!-- Mode toggle -->
+      <div class="mode-pills" id="mode-pills">
+        <button class="mode-pill active" data-mode="type" id="pill-type">Type</button>
+        <button class="mode-pill" data-mode="draw" id="pill-draw">Draw</button>
+      </div>
+
+      <div class="tb-div"></div>
+
+      <!-- Draw tools (shown in draw mode) -->
+      <div class="tb-section pen-tools" id="pen-tools" style="display:none;">
+        <button class="pen-btn active" id="tool-pen" title="Fountain Pen" data-tool="pen">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M13.5 1L15 2.5l-2 2-1.5-1.5L13.5 1zM2 11l7-7 1.5 1.5-7 7L2 14l-.5-2.5L2 11z"/></svg>
+        </button>
+        <button class="pen-btn" id="tool-pencil" title="Pencil" data-tool="pencil">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M12 2l2 2-9 9H3v-2l9-9zM1 13h3l.5 1.5L1 15v-2z" opacity="0.7"/></svg>
+        </button>
+        <button class="pen-btn" id="tool-marker" title="Marker" data-tool="marker">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><rect x="5" y="1" width="6" height="10" rx="1"/><rect x="6" y="11" width="4" height="3" rx="0.5"/></svg>
+        </button>
+        <button class="pen-btn" id="tool-eraser" title="Eraser" data-tool="eraser">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><rect x="2" y="8" width="12" height="5" rx="1" opacity="0.7"/><path d="M5 8L9 4l4 4" stroke="currentColor" stroke-width="1.5" fill="none" opacity="0.7"/></svg>
+        </button>
+
+        <div class="tb-div"></div>
+
+        <!-- Color swatches -->
+        <div style="display:flex;gap:5px;align-items:center;" id="color-swatches">
+          <div class="color-swatch active" style="background:#17120d;" data-color="#17120d" title="Ink"></div>
+          <div class="color-swatch" style="background:#1a3a6a;" data-color="#1a3a6a" title="Blue"></div>
+          <div class="color-swatch" style="background:#5a1a1a;" data-color="#5a1a1a" title="Red"></div>
+          <div class="color-swatch" style="background:#1a4a2a;" data-color="#1a4a2a" title="Green"></div>
+          <div class="color-swatch" style="background:#c9a460;" data-color="#c9a460" title="Gold"></div>
+        </div>
+
+        <div class="tb-div"></div>
+
+        <button class="tb-btn" id="undo-btn" title="Undo">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 5h5a4 4 0 010 8H4"/><path d="M2 2l3 3-3 3"/></svg>
+        </button>
+        <button class="tb-btn" id="clear-btn" title="Clear drawing">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 2l10 10M12 2L2 12"/></svg>
+        </button>
+      </div>
+
+      <div class="tb-spacer"></div>
+
+      <div class="save-badge" id="save-badge">
+        <div class="save-dot"></div>
+        <span id="save-text">Saved</span>
+      </div>
+    </div>
+
+    <!-- PAGE STAGE -->
+    <div class="page-stage">
+      <div class="page-viewport" id="page-viewport">
+
+        <!-- Incoming page (behind) -->
+        <div class="page-wrap" id="page-incoming" style="z-index:1;">
+          <div class="page">
+            <div class="page-binding"></div>
+            <div class="page-flip-shadow"></div>
+            <div class="page-inner" id="incoming-inner">
+              <div class="empty-page">
+                <div class="ep-mark">C</div>
+              </div>
+            </div>
+            <div class="page-num" id="incoming-num"></div>
+          </div>
+        </div>
+
+        <!-- Current (top) page -->
+        <div class="page-wrap" id="page-current" style="z-index:2;">
+          <div class="page">
+            <div class="page-binding"></div>
+            <div class="page-flip-shadow"></div>
+            <div class="page-inner" id="page-inner">
+              <div class="empty-page" id="empty-page">
+                <div class="ep-mark">C</div>
+                <p>Select a note or<br/>create a new one.</p>
+              </div>
+              <textarea id="note-title" style="display:none;" rows="1" placeholder="Untitled"></textarea>
+              <textarea id="note-body" style="display:none;" placeholder="Begin writing here…"></textarea>
+            </div>
+            <canvas id="draw-canvas"></canvas>
+            <div class="page-num" id="page-num"></div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- STYLUS INDICATOR -->
+<div class="stylus-indicator" id="stylus-indicator">
+  <div class="si-dot"></div>
+  <span id="si-text">Apple Pencil Connected</span>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<!-- ══════════════════════ FIREBASE + APP LOGIC ══════════════════════ -->
+<script type="module">
+import { initializeApp }           from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged }
+  from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { getFirestore, collection, doc, addDoc, setDoc, deleteDoc, onSnapshot, query, orderBy, serverTimestamp }
+  from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey:"AIzaSyAXUptUUcOkkjxhPW0X4mrOWivWLC-URrQ",
+  authDomain:"ice-cube-97847.firebaseapp.com",
+  projectId:"ice-cube-97847",
+  storageBucket:"ice-cube-97847.firebasestorage.app",
+  messagingSenderId:"354070873862",
+  appId:"1:354070873862:web:7e8e7104e1a370c3e14087",
+  measurementId:"G-6CW6TGGJN7"
+};
+const fbApp = initializeApp(firebaseConfig);
+const auth  = getAuth(fbApp);
+const db    = getFirestore(fbApp);
+
+// ─────────────────────── STATE ───────────────────────
+let user         = null;
+let notes        = [];
+let currentId    = null;
+let unsub        = null;
+let saveTimer    = null;
+let isFlipping   = false;
+let currentMode  = 'type';  // 'type' | 'draw'
+let currentTool  = 'pen';
+let currentColor = '#17120d';
+let strokes      = [];       // [{tool,color,pts:[{x,y,p,tX,tY}]}]
+let currentStroke= null;
+let undoHistory  = [];
+let activeStylusId = null;   // for palm rejection
+let stylusIndicatorTimer = null;
+let noteIndex    = 0;        // for page numbers
+
+// ─────────────────────── ELEMENTS ───────────────────────
+const $loading    = document.getElementById('loading');
+const $authScreen = document.getElementById('auth-screen');
+const $app        = document.getElementById('app');
+const $googleBtn  = document.getElementById('google-login-btn');
+const $noteScroll = document.getElementById('note-scroll');
+const $emptyPage  = document.getElementById('empty-page');
+const $noteTitle  = document.getElementById('note-title');
+const $noteBody   = document.getElementById('note-body');
+const $canvas     = document.getElementById('draw-canvas');
+const $pageNum    = document.getElementById('page-num');
+const $pageInner  = document.getElementById('page-inner');
+const $saveBadge  = document.getElementById('save-badge');
+const $saveText   = document.getElementById('save-text');
+const $penTools   = document.getElementById('pen-tools');
+const $pillType   = document.getElementById('pill-type');
+const $pillDraw   = document.getElementById('pill-draw');
+const $stylusInd  = document.getElementById('stylus-indicator');
+const $siText     = document.getElementById('si-text');
+const $toast      = document.getElementById('toast');
+const ctx         = $canvas.getContext('2d');
+
+// ─────────────────────── TOAST ───────────────────────
+function toast(msg, ms=2400) {
+  $toast.textContent = msg;
+  $toast.classList.add('show');
+  setTimeout(()=>$toast.classList.remove('show'), ms);
+}
+
+// ─────────────────────── SAVE BADGE ───────────────────────
+function setSaving() {
+  $saveBadge.className = 'save-badge show saving';
+  $saveText.textContent = 'Saving…';
+}
+function setSaved() {
+  $saveBadge.className = 'save-badge show saved';
+  $saveText.textContent = 'Saved';
+  setTimeout(()=>$saveBadge.classList.remove('show'), 2200);
+}
+
+// ─────────────────────── AUTH ───────────────────────
+$googleBtn.addEventListener('click', async () => {
+  try { await signInWithPopup(auth, new GoogleAuthProvider()); }
+  catch(e) { toast('Sign-in failed. Please try again.'); console.error(e); }
+});
+document.getElementById('signout-btn').addEventListener('click', async () => {
+  if(unsub) unsub();
+  await signOut(auth);
+});
+onAuthStateChanged(auth, u => {
+  $loading.classList.add('out');
+  if(u) { user = u; showApp(u); }
+  else   { user = null; $authScreen.classList.remove('hidden'); $app.classList.add('hidden'); }
+});
+
+function showApp(u) {
+  $authScreen.classList.add('hidden');
+  $app.classList.remove('hidden');
+  // Avatar
+  const slot = document.getElementById('user-avatar-slot');
+  if(u.photoURL) slot.innerHTML = `<img class="user-avatar" src="${u.photoURL}"/>`;
+  else slot.innerHTML = `<div class="user-init">${(u.displayName||u.email||'U')[0].toUpperCase()}</div>`;
+  document.getElementById('user-name-sm').textContent = u.displayName || u.email || '';
+  listenNotes(u.uid);
+}
+
+// ─────────────────────── FIRESTORE ───────────────────────
+function listenNotes(uid) {
+  if(unsub) unsub();
+  const q = query(collection(db,'users',uid,'notes'), orderBy('updatedAt','desc'));
+  unsub = onSnapshot(q, snap => {
+    notes = snap.docs.map(d => ({id:d.id,...d.data()}));
+    renderSidebar();
+  });
+}
+
+async function saveNote() {
+  if(!user || !currentId) return;
+  setSaving();
+  const title  = $noteTitle.value.trim() || 'Untitled';
+  const body   = $noteBody.value;
+  const ref    = doc(db,'users',user.uid,'notes',currentId);
+  await setDoc(ref, {title, body, strokes: JSON.stringify(strokes), updatedAt:serverTimestamp()}, {merge:true});
+  setSaved();
+}
+
+async function createNote() {
+  if(!user) return;
+  const ref = await addDoc(collection(db,'users',user.uid,'notes'), {
+    title:'', body:'', strokes:'[]', updatedAt:serverTimestamp()
+  });
+  loadNote(ref.id, '', '', []);
+}
+
+async function deleteNote(id) {
+  if(!user) return;
+  await deleteDoc(doc(db,'users',user.uid,'notes',id));
+  if(currentId===id){ currentId=null; showEmpty(); }
+  toast('Note deleted');
+}
+
+function schedSave() {
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(saveNote, 1100);
+}
+
+// ─────────────────────── SIDEBAR RENDER ───────────────────────
+function renderSidebar() {
+  if(!notes.length) {
+    $noteScroll.innerHTML = `<div class="empty-sidebar"><div class="es-icon">📓</div><p>No notes yet.<br/>Begin writing.</p></div>`;
+    return;
+  }
+  $noteScroll.innerHTML = notes.map((n,i) => {
+    const dt = n.updatedAt?.toDate ? n.updatedAt.toDate().toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'2-digit'}) : '';
+    const preview = (n.body||'').replace(/\n/g,' ').slice(0,40);
+    return `<div class="note-item ${n.id===currentId?'active':''}" data-id="${n.id}" data-idx="${i}">
+      <div class="ni-title">${esc(n.title||'Untitled')}</div>
+      <div class="ni-preview">${esc(preview)||'No content'}</div>
+      <div class="ni-date">${dt}</div>
+      <button class="ni-del" data-id="${n.id}">✕</button>
+    </div>`;
+  }).join('');
+
+  $noteScroll.querySelectorAll('.note-item').forEach(el => {
+    el.addEventListener('click', e => {
+      if(e.target.closest('.ni-del')) return;
+      const note = notes.find(n=>n.id===el.dataset.id);
+      if(note && note.id !== currentId) {
+        const idx = parseInt(el.dataset.idx);
+        flipToNote(note, idx);
+      }
+    });
+  });
+  $noteScroll.querySelectorAll('.ni-del').forEach(btn => {
+    btn.addEventListener('click', e => { e.stopPropagation(); deleteNote(btn.dataset.id); });
+  });
+}
+
+// ─────────────────────── PAGE FLIP ───────────────────────
+const $pageCurrent  = document.getElementById('page-current');
+const $pageIncoming = document.getElementById('page-incoming');
+const $incomingInner= document.getElementById('incoming-inner');
+const $incomingNum  = document.getElementById('incoming-num');
+
+function prepareIncoming(note, idx) {
+  const titleHtml = esc(note.title||'');
+  const bodyHtml  = esc(note.body||'');
+  $incomingInner.innerHTML = `
+    <div style="font-family:'Cormorant Garamond',serif;font-size:clamp(1.8rem,4vw,2.6rem);font-weight:600;line-height:1.25;color:#17120d;margin-bottom:28px;opacity:${titleHtml?1:0.2};">${titleHtml||'Untitled'}</div>
+    <div style="font-family:'Crimson Pro',serif;font-size:1.1rem;font-weight:300;line-height:2.06;color:#3d342a;white-space:pre-wrap;">${bodyHtml}</div>
+  `;
+  $incomingNum.textContent = `Page ${idx+1} of ${notes.length}`;
+}
+
+function flipToNote(note, idx) {
+  if(isFlipping) return;
+  isFlipping = true;
+
+  // Save current work first
+  if(currentId) saveNote();
+
+  // Prepare incoming
+  prepareIncoming(note, idx);
+
+  // Start flip out
+  $pageCurrent.classList.remove('flip-out','flip-in');
+  $pageIncoming.classList.remove('flip-out','flip-in');
+  void $pageCurrent.offsetWidth; // force reflow
+
+  $pageCurrent.classList.add('flip-out');
+
+  setTimeout(() => {
+    // Load the new note into the "current" page
+    openNoteContent(note, idx);
+
+    // Flip in
+    $pageCurrent.classList.remove('flip-out');
+    $pageCurrent.classList.add('flip-in');
+
+    setTimeout(() => {
+      $pageCurrent.classList.remove('flip-in');
+      isFlipping = false;
+      renderSidebar();
+    }, 350);
+  }, 320);
+}
+
+function openNoteContent(note, idx) {
+  currentId = note.id;
+  noteIndex = idx;
+
+  // Parse saved strokes
+  try { strokes = JSON.parse(note.strokes||'[]'); } catch { strokes = []; }
+  undoHistory = [];
+
+  // Show editor
+  $emptyPage.style.display = 'none';
+  $noteTitle.style.display = '';
+  $noteBody.style.display  = '';
+  $noteTitle.value = note.title || '';
+  $noteBody.value  = note.body  || '';
+  autoResize($noteTitle);
+
+  $pageNum.textContent = `Page ${idx+1} of ${notes.length}`;
+
+  // Resize + redraw canvas
+  resizeCanvas();
+  redrawStrokes();
+}
+
+function showEmpty() {
+  currentId = null;
+  $emptyPage.style.display = '';
+  $noteTitle.style.display = 'none';
+  $noteBody.style.display  = 'none';
+  $pageNum.textContent = '';
+  clearCanvas();
+  renderSidebar();
+}
+
+function loadNote(id, title, body, strokesArr) {
+  const idx = notes.findIndex(n=>n.id===id);
+  const note = {id, title, body, strokes: JSON.stringify(strokesArr||[])};
+  if(idx >= 0) flipToNote(note, idx);
+  else { openNoteContent(note, 0); renderSidebar(); }
+}
+
+// ─────────────────────── INPUT ───────────────────────
+document.getElementById('new-note-btn').addEventListener('click', createNote);
+$noteTitle.addEventListener('input', () => { autoResize($noteTitle); schedSave(); });
+$noteBody.addEventListener('input', schedSave);
+
+// Mode toggle
+document.getElementById('mode-pills').addEventListener('click', e => {
+  const pill = e.target.closest('.mode-pill');
+  if(!pill) return;
+  setMode(pill.dataset.mode);
+});
+
+function setMode(mode) {
+  currentMode = mode;
+  $pillType.classList.toggle('active', mode==='type');
+  $pillDraw.classList.toggle('active', mode==='draw');
+  $penTools.style.display = mode==='draw' ? '' : 'none';
+  $canvas.classList.toggle('active', mode==='draw');
+  $noteTitle.style.pointerEvents = mode==='draw' ? 'none' : '';
+  $noteBody.style.pointerEvents  = mode==='draw' ? 'none' : '';
+  if(mode==='draw') resizeCanvas();
+}
+
+// Pen tool buttons
+document.querySelectorAll('.pen-btn[data-tool]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.pen-btn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    currentTool = btn.dataset.tool;
+  });
+});
+
+// Color swatches
+document.querySelectorAll('.color-swatch').forEach(sw => {
+  sw.addEventListener('click', () => {
+    document.querySelectorAll('.color-swatch').forEach(s=>s.classList.remove('active'));
+    sw.classList.add('active');
+    currentColor = sw.dataset.color;
+  });
+});
+
+// Undo
+document.getElementById('undo-btn').addEventListener('click', () => {
+  if(!strokes.length) return;
+  undoHistory.push(strokes.pop());
+  redrawStrokes();
+  schedSave();
+});
+
+// Clear
+document.getElementById('clear-btn').addEventListener('click', () => {
+  undoHistory = [...strokes];
+  strokes = [];
+  clearCanvas();
+  schedSave();
+});
+
+// ─────────────────────── CANVAS ENGINE ───────────────────────
+function resizeCanvas() {
+  const page = $canvas.parentElement;
+  const rect  = page.getBoundingClientRect();
+  if($canvas.width === rect.width && $canvas.height === rect.height) return;
+  $canvas.width  = rect.width;
+  $canvas.height = rect.height;
+  redrawStrokes();
+}
+
+function clearCanvas() {
+  ctx.clearRect(0,0,$canvas.width,$canvas.height);
+}
+
+function redrawStrokes() {
+  clearCanvas();
+  strokes.forEach(s => renderStroke(s));
+}
+
+// Map normalized coords → pixel
+function nx(v){ return v * $canvas.width; }
+function ny(v){ return v * $canvas.height; }
+
+function renderStroke(stroke) {
+  if(!stroke.pts || stroke.pts.length < 2) return;
+  const pts = stroke.pts;
+
+  ctx.save();
+  ctx.lineCap   = 'round';
+  ctx.lineJoin  = 'round';
+
+  if(stroke.tool === 'eraser') {
+    ctx.globalCompositeOperation = 'destination-out';
+    ctx.strokeStyle = 'rgba(0,0,0,1)';
+    ctx.lineWidth = 28;
+    ctx.beginPath();
+    ctx.moveTo(nx(pts[0].x), ny(pts[0].y));
+    for(let i=1;i<pts.length;i++) {
+      const mx = (nx(pts[i-1].x)+nx(pts[i].x))/2;
+      const my = (ny(pts[i-1].y)+ny(pts[i].y))/2;
+      ctx.quadraticCurveTo(nx(pts[i-1].x), ny(pts[i-1].y), mx, my);
+    }
+    ctx.stroke();
+  } else if(stroke.tool === 'marker') {
+    ctx.globalCompositeOperation = 'multiply';
+    ctx.globalAlpha = 0.35;
+    ctx.strokeStyle = stroke.color;
+    // Marker: wide, uniform
+    for(let i=1;i<pts.length;i++) {
+      const p = (pts[i-1].p + pts[i].p) / 2;
+      ctx.lineWidth = 14 + p * 10;
+      ctx.beginPath();
+      ctx.moveTo(nx(pts[i-1].x), ny(pts[i-1].y));
+      const mx = (nx(pts[i-1].x)+nx(pts[i].x))/2;
+      const my = (ny(pts[i-1].y)+ny(pts[i].y))/2;
+      ctx.quadraticCurveTo(nx(pts[i-1].x), ny(pts[i-1].y), mx, my);
+      ctx.stroke();
+    }
+  } else if(stroke.tool === 'pencil') {
+    // Pencil: grainy, low opacity, tilt-aware
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.strokeStyle = stroke.color;
+    for(let i=1;i<pts.length;i++) {
+      const pt = pts[i];
+      const pp = pts[i-1];
+      const tiltMag = Math.sqrt((pt.tX||0)**2 + (pt.tY||0)**2);
+      const isAngled = tiltMag > 20;
+      const baseW = isAngled ? 4 + tiltMag*0.1 : 0.8 + pt.p * 2.5;
+      ctx.globalAlpha = isAngled ? 0.12 : 0.35 + pt.p * 0.3;
+      ctx.lineWidth = baseW;
+      ctx.beginPath();
+      ctx.moveTo(nx(pp.x), ny(pp.y));
+      const mx = (nx(pp.x)+nx(pt.x))/2;
+      const my = (ny(pp.y)+ny(pt.y))/2;
+      ctx.quadraticCurveTo(nx(pp.x), ny(pp.y), mx, my);
+      ctx.stroke();
+      // Grain texture: scatter tiny dots
+      if(Math.random() < 0.15) {
+        ctx.globalAlpha = 0.06 + Math.random()*0.08;
+        ctx.fillStyle = stroke.color;
+        ctx.beginPath();
+        ctx.arc(nx(pt.x)+( Math.random()-0.5)*baseW*3, ny(pt.y)+(Math.random()-0.5)*baseW*3, 0.4, 0, Math.PI*2);
+        ctx.fill();
+      }
+    }
+  } else {
+    // Fountain pen: pressure-sensitive tapering
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.strokeStyle = stroke.color;
+    for(let i=1;i<pts.length;i++) {
+      const pt  = pts[i];
+      const pp  = pts[i-1];
+      const w   = 0.5 + ((pp.p||0.5) + (pt.p||0.5)) / 2 * 5.5;
+      ctx.globalAlpha = 0.75 + (pt.p||0.5) * 0.25;
+      ctx.lineWidth = w;
+      ctx.beginPath();
+      ctx.moveTo(nx(pp.x), ny(pp.y));
+      const mx = (nx(pp.x)+nx(pt.x))/2;
+      const my = (ny(pp.y)+ny(pt.y))/2;
+      ctx.quadraticCurveTo(nx(pp.x), ny(pp.y), mx, my);
+      ctx.stroke();
+    }
+  }
+  ctx.restore();
+}
+
+// ─────────────────────── POINTER EVENTS (Apple Pencil) ───────────────────────
+let activePoints = new Map(); // pointerId → [{x,y,p,tX,tY}]
+
+$canvas.addEventListener('pointerdown', e => {
+  e.preventDefault();
+
+  // Palm rejection: if stylus just activated, ignore any touch
+  if(e.pointerType === 'stylus') {
+    activeStylusId = e.pointerId;
+    showStylusIndicator(e.pressure);
+  }
+  if(e.pointerType === 'touch' && activeStylusId !== null) return;
+  if(e.pointerType === 'mouse' && activeStylusId !== null) return;
+
+  $canvas.setPointerCapture(e.pointerId);
+  const pt = normPoint(e);
+  activePoints.set(e.pointerId, [pt]);
+  currentStroke = { tool:currentTool, color:currentColor, pts:[pt] };
+});
+
+$canvas.addEventListener('pointermove', e => {
+  e.preventDefault();
+  if(!activePoints.has(e.pointerId)) return;
+
+  // Palm rejection
+  if(e.pointerType === 'touch' && activeStylusId !== null && e.pointerId !== activeStylusId) return;
+
+  if(e.pointerType === 'stylus') showStylusIndicator(e.pressure);
+
+  const pt = normPoint(e);
+  activePoints.get(e.pointerId).push(pt);
+
+  if(currentStroke) {
+    currentStroke.pts.push(pt);
+    // Incremental render (last 2 pts)
+    const pts = currentStroke.pts;
+    if(pts.length >= 2) {
+      renderStrokeTail(currentStroke, pts.length-2);
+    }
+  }
+});
+
+$canvas.addEventListener('pointerup', e => {
+  e.preventDefault();
+  if(e.pointerType === 'stylus') {
+    activeStylusId = null;
+    hideStylusIndicator();
+  }
+  if(!activePoints.has(e.pointerId)) return;
+  activePoints.delete(e.pointerId);
+  if(currentStroke && currentStroke.pts.length > 1) {
+    strokes.push(currentStroke);
+    schedSave();
+  }
+  currentStroke = null;
+});
+
+$canvas.addEventListener('pointercancel', e => {
+  activePoints.delete(e.pointerId);
+  currentStroke = null;
+  if(e.pointerType === 'stylus') { activeStylusId = null; hideStylusIndicator(); }
+});
+
+function renderStrokeTail(stroke, fromIdx) {
+  const pts = stroke.pts;
+  const mini = {tool:stroke.tool, color:stroke.color, pts: pts.slice(Math.max(0,fromIdx-1))};
+  renderStroke(mini);
+}
+
+function normPoint(e) {
+  const rect = $canvas.getBoundingClientRect();
+  return {
+    x: (e.clientX - rect.left) / rect.width,
+    y: (e.clientY - rect.top)  / rect.height,
+    p: e.pressure || 0.5,
+    tX: e.tiltX || 0,
+    tY: e.tiltY || 0,
+  };
+}
+
+// ─────────────────────── STYLUS INDICATOR ───────────────────────
+function showStylusIndicator(pressure) {
+  clearTimeout(stylusIndicatorTimer);
+  const pct = Math.round((pressure||0) * 100);
+  $siText.textContent = `Apple Pencil — ${pct}% pressure`;
+  $stylusInd.classList.add('show');
+  stylusIndicatorTimer = setTimeout(() => $stylusInd.classList.remove('show'), 1500);
+}
+function hideStylusIndicator() {
+  clearTimeout(stylusIndicatorTimer);
+  stylusIndicatorTimer = setTimeout(() => $stylusInd.classList.remove('show'), 400);
+}
+
+// ─────────────────────── UTILS ───────────────────────
+function autoResize(el) {
+  el.style.height = 'auto';
+  el.style.height = el.scrollHeight + 'px';
+}
+function esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// Resize canvas when window resizes
+const ro = new ResizeObserver(() => { if(currentMode==='draw') resizeCanvas(); });
+ro.observe(document.getElementById('page-viewport'));
+</script>
+</body>
+</html>
