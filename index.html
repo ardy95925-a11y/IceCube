@@ -1,0 +1,1360 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>THE SURVEY</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#f5f2eb;--ink:#111010;--accent:#e63224;--faint:#d8d4c9;--mid:#888077;--green:#1a6b2e;}
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;}
+body{font-family:'IBM Plex Mono',monospace;background:var(--bg);color:var(--ink);min-height:100vh;display:flex;flex-direction:column;align-items:center;overflow-x:hidden;}
+
+/* ── INTRO ── */
+#intro-screen{width:100%;max-width:820px;padding:56px 40px;animation:slideIn .5s cubic-bezier(.77,0,.18,1) both;}
+.intro-eyebrow{font-size:10px;letter-spacing:.4em;text-transform:uppercase;color:var(--accent);margin-bottom:14px;font-weight:700;}
+.intro-title{font-family:'Space Mono',monospace;font-size:clamp(40px,8vw,80px);font-weight:700;line-height:.92;margin-bottom:24px;letter-spacing:-.03em;}
+.intro-desc{font-size:14px;line-height:1.75;color:var(--mid);max-width:460px;margin-bottom:40px;}
+.intro-meta{display:flex;gap:28px;margin-bottom:40px;flex-wrap:wrap;}
+.meta-item{display:flex;flex-direction:column;gap:4px;}
+.meta-val{font-family:'Space Mono',monospace;font-size:28px;font-weight:700;}
+.meta-label{font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--mid);}
+.divider{width:100%;height:1px;background:var(--faint);margin-bottom:36px;}
+.btn-start{font-family:'Space Mono',monospace;font-size:15px;font-weight:700;letter-spacing:.05em;color:var(--bg);background:var(--ink);border:none;cursor:pointer;padding:20px 56px;text-transform:uppercase;transition:all .13s ease;-webkit-tap-highlight-color:transparent;}
+.btn-start:hover{background:var(--accent);}
+.warning-text{font-size:11px;color:var(--mid);margin-top:14px;font-style:italic;}
+
+/* ── SURVEY ── */
+#survey-screen{display:none;width:100%;max-width:820px;flex-direction:column;align-items:stretch;}
+.s-header{width:100%;padding:28px 40px 0;display:flex;justify-content:space-between;align-items:center;}
+.logo{font-family:'Space Mono',monospace;font-size:11px;font-weight:700;letter-spacing:.3em;text-transform:uppercase;color:var(--mid);}
+.q-counter{font-size:11px;letter-spacing:.15em;color:var(--mid);}
+.progress-wrap{width:100%;padding:14px 40px;}
+.progress-bar{width:100%;height:2px;background:var(--faint);position:relative;overflow:hidden;}
+.progress-fill{position:absolute;left:0;top:0;height:100%;background:var(--accent);transition:width .5s cubic-bezier(.77,0,.18,1);}
+.card{width:100%;padding:32px 40px 28px;min-height:62vh;display:flex;flex-direction:column;justify-content:space-between;}
+.question-block{flex:1;}
+.question-tag{font-size:10px;letter-spacing:.4em;text-transform:uppercase;color:var(--accent);margin-bottom:10px;font-weight:700;}
+.question-text{font-family:'Space Mono',monospace;font-size:clamp(17px,2.8vw,25px);line-height:1.4;font-weight:700;margin-bottom:28px;letter-spacing:-.01em;}
+.sub-text{font-size:12px;color:var(--mid);margin-top:-22px;margin-bottom:26px;font-style:italic;}
+
+/* ── CARD ANIMATIONS ── */
+.card-anim{animation:slideIn .32s cubic-bezier(.77,0,.18,1) both;}
+.card-anim-back{animation:slideInBack .32s cubic-bezier(.77,0,.18,1) both;}
+.card-still{animation:none;}
+@keyframes slideIn{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+@keyframes slideInBack{from{opacity:0;transform:translateY(-16px)}to{opacity:1;transform:translateY(0)}}
+
+/* ── OPTIONS ── */
+.options-list{display:flex;flex-direction:column;gap:9px;}
+.option-item{display:flex;align-items:center;gap:14px;padding:13px 16px;border:1.5px solid var(--faint);cursor:pointer;transition:all .13s ease;user-select:none;-webkit-tap-highlight-color:transparent;}
+.option-item:active{transform:scale(.99);}
+.option-item.selected{border-color:var(--ink);background:var(--ink);color:var(--bg);}
+.option-item.selected .opt-key{color:var(--accent);}
+.opt-key{font-size:11px;font-weight:700;letter-spacing:.1em;color:var(--mid);min-width:20px;flex-shrink:0;}
+.opt-label{font-size:14px;line-height:1.35;}
+
+/* ── SLIDER ── */
+.slider-wrap{padding:8px 0 20px;}
+.slider-val{font-family:'Space Mono',monospace;font-size:56px;font-weight:700;line-height:1;margin-bottom:20px;transition:transform .1s ease,color .1s ease;}
+.slider-val.pop{transform:scale(1.06);color:var(--accent);}
+input[type=range]{-webkit-appearance:none;width:100%;height:2px;background:var(--faint);outline:none;cursor:pointer;}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:26px;height:26px;background:var(--ink);border-radius:50%;cursor:pointer;transition:transform .1s,background .1s;}
+input[type=range]:active::-webkit-slider-thumb{transform:scale(1.3);background:var(--accent);}
+.slider-labels{display:flex;justify-content:space-between;margin-top:10px;font-size:11px;color:var(--mid);}
+
+/* ── SELECT ── */
+.styled-select{width:100%;padding:16px 18px;font-family:'IBM Plex Mono',monospace;font-size:14px;background:var(--bg);border:1.5px solid var(--ink);color:var(--ink);appearance:none;-webkit-appearance:none;cursor:pointer;outline:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23111' stroke-width='1.5' fill='none'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 18px center;}
+
+/* ── TOGGLE ── */
+.toggle-group{display:flex;border:1.5px solid var(--ink);overflow:hidden;flex-wrap:wrap;}
+.toggle-btn{padding:14px 16px;font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:500;cursor:pointer;background:transparent;border:none;border-right:1.5px solid var(--ink);color:var(--ink);transition:all .13s ease;-webkit-tap-highlight-color:transparent;flex:1;line-height:1.3;}
+.toggle-btn:last-child{border-right:none;}
+.toggle-btn.selected{background:var(--ink);color:var(--bg);}
+
+/* ── EMOJI ── */
+.emoji-row{display:flex;gap:8px;flex-wrap:wrap;}
+.emoji-btn{width:66px;height:66px;font-size:30px;display:flex;align-items:center;justify-content:center;border:1.5px solid var(--faint);cursor:pointer;background:transparent;transition:all .13s ease;-webkit-tap-highlight-color:transparent;user-select:none;}
+.emoji-btn.selected{border-color:var(--ink);background:var(--ink);transform:scale(1.12);}
+
+/* ── GRID ── */
+.grid-choices{display:grid;grid-template-columns:1fr 1fr;gap:9px;}
+.grid-item{padding:18px 14px;border:1.5px solid var(--faint);cursor:pointer;display:flex;flex-direction:column;gap:7px;transition:all .13s ease;-webkit-tap-highlight-color:transparent;user-select:none;}
+.grid-item:active{transform:scale(.98);}
+.grid-item.selected{border-color:var(--ink);background:var(--ink);color:var(--bg);}
+.grid-icon{font-size:26px;}
+.grid-label{font-size:13px;font-weight:500;line-height:1.3;}
+
+/* ── NUMBER ── */
+.num-input-wrap{display:flex;align-items:center;border:1.5px solid var(--ink);width:fit-content;}
+.num-btn{width:56px;height:56px;font-size:22px;background:transparent;border:none;cursor:pointer;font-family:'Space Mono',monospace;color:var(--ink);transition:background .13s;-webkit-tap-highlight-color:transparent;}
+.num-btn:hover{background:var(--faint);}
+.num-val{font-family:'Space Mono',monospace;font-size:26px;font-weight:700;min-width:90px;text-align:center;border-left:1.5px solid var(--ink);border-right:1.5px solid var(--ink);padding:12px 8px;transition:color .15s;}
+
+/* ── RANK ── */
+.rank-list{display:flex;flex-direction:column;gap:7px;}
+.rank-item{display:flex;align-items:center;gap:12px;padding:12px 14px;border:1.5px solid var(--faint);cursor:grab;background:var(--bg);transition:border-color .13s,box-shadow .13s,opacity .13s;user-select:none;-webkit-tap-highlight-color:transparent;}
+.rank-item:active{cursor:grabbing;}
+.rank-item.dragging{opacity:.4;border-color:var(--accent);background:var(--bg);}
+.rank-item.drag-over{border-color:var(--ink);box-shadow:0 0 0 2px var(--ink);}
+.rank-num{font-size:11px;font-weight:700;color:var(--accent);min-width:18px;}
+.rank-handle{color:var(--faint);font-size:16px;}
+.rank-label{font-size:13px;flex:1;}
+
+/* ── SCALE ── */
+.scale-labels{display:flex;gap:6px;flex-wrap:wrap;}
+.scale-pill{padding:10px 16px;border:1.5px solid var(--faint);font-size:13px;cursor:pointer;transition:all .13s ease;-webkit-tap-highlight-color:transparent;user-select:none;}
+.scale-pill.selected{background:var(--ink);color:var(--bg);border-color:var(--ink);}
+
+/* ── WORD ── */
+.word-cloud{display:flex;flex-wrap:wrap;gap:8px;}
+.word-tag{padding:10px 16px;border:1.5px solid var(--faint);font-size:13px;cursor:pointer;transition:all .13s ease;-webkit-tap-highlight-color:transparent;user-select:none;}
+.word-tag.selected{background:var(--ink);color:var(--bg);border-color:var(--ink);}
+
+/* ── TAP GRID ── */
+.tap-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;}
+.tap-cell{aspect-ratio:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;border:1.5px solid var(--faint);cursor:pointer;transition:all .13s ease;user-select:none;-webkit-tap-highlight-color:transparent;padding:8px;}
+.tap-cell:active{transform:scale(.95);}
+.tap-cell.selected{border-color:var(--ink);background:var(--ink);color:var(--bg);}
+.tap-cell-icon{font-size:24px;}
+.tap-cell-label{font-size:11px;text-align:center;line-height:1.3;font-weight:500;}
+
+/* ── MAD LIB ── */
+.madlib-wrap{font-family:'Space Mono',monospace;font-size:clamp(14px,2vw,18px);line-height:2.6;margin-bottom:20px;}
+.madlib-blank{display:inline-block;border-bottom:2px solid var(--ink);min-width:140px;vertical-align:bottom;text-align:center;font-size:13px;font-weight:700;color:var(--accent);padding:0 6px;}
+.madlib-selects{display:flex;flex-direction:column;gap:12px;}
+.madlib-row{display:flex;flex-direction:column;gap:5px;}
+.madlib-row-label{font-size:10px;letter-spacing:.3em;text-transform:uppercase;color:var(--mid);}
+.madlib-row select{font-family:'IBM Plex Mono',monospace;font-size:14px;background:var(--bg);border:1.5px solid var(--ink);color:var(--ink);padding:12px 16px;outline:none;cursor:pointer;width:100%;appearance:none;-webkit-appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23111' stroke-width='1.5' fill='none'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 16px center;}
+
+/* ── RAPID FIRE ── */
+.rapid-list{display:flex;flex-direction:column;gap:10px;}
+.rapid-row{display:flex;align-items:center;gap:12px;padding:0;}
+.rapid-q{font-size:13px;flex:1;line-height:1.4;}
+.rapid-btns{display:flex;border:1.5px solid var(--ink);flex-shrink:0;}
+.rapid-btn{padding:10px 18px;font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:700;cursor:pointer;background:transparent;border:none;border-right:1.5px solid var(--ink);color:var(--ink);transition:all .12s;-webkit-tap-highlight-color:transparent;}
+.rapid-btn:last-child{border-right:none;}
+.rapid-btn.yes-sel{background:#1a6b2e;color:#fff;border-color:#1a6b2e;}
+.rapid-btn.no-sel{background:var(--accent);color:#fff;border-color:var(--accent);}
+
+/* ── COLOR PICKER ── */
+.color-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;}
+.color-swatch{aspect-ratio:1;border:2px solid transparent;cursor:pointer;transition:all .13s ease;-webkit-tap-highlight-color:transparent;border-radius:2px;}
+.color-swatch.selected{border-color:var(--ink);transform:scale(1.1);box-shadow:0 0 0 2px var(--ink);}
+.color-label{font-size:11px;color:var(--mid);margin-top:12px;text-align:center;}
+
+/* ── TAP COUNT ── */
+.tap-count-wrap{display:flex;flex-direction:column;align-items:center;gap:20px;}
+.tap-big-btn{width:160px;height:160px;border:2px solid var(--ink);background:transparent;font-family:'Space Mono',monospace;font-size:16px;font-weight:700;cursor:pointer;transition:all .08s ease;-webkit-tap-highlight-color:transparent;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;letter-spacing:.1em;}
+.tap-big-btn:active{background:var(--ink);color:var(--bg);transform:scale(.93);}
+.tap-big-btn.done{border-color:var(--accent);color:var(--accent);}
+.tap-count-num{font-family:'Space Mono',monospace;font-size:64px;font-weight:700;line-height:1;transition:transform .08s ease;}
+.tap-count-num.bump{transform:scale(1.2);}
+.tap-timer-bar{width:200px;height:3px;background:var(--faint);position:relative;overflow:hidden;}
+.tap-timer-fill{position:absolute;left:0;top:0;height:100%;background:var(--accent);transition:width .1s linear;}
+.tap-timer-label{font-size:11px;color:var(--mid);letter-spacing:.1em;}
+
+/* ── CUSTOM TEXT DISPLAY ── */
+.custom-text-display{width:100%;padding:16px 4px;font-family:'Space Mono',monospace;font-size:20px;background:transparent;border-bottom:2px solid var(--ink);color:var(--ink);min-height:58px;cursor:text;position:relative;user-select:none;-webkit-tap-highlight-color:transparent;}
+.custom-text-display .cursor{display:inline-block;width:2px;height:1.2em;background:var(--ink);vertical-align:text-bottom;animation:blink 1s step-end infinite;margin-left:1px;}
+.custom-text-display .placeholder{color:var(--faint);}
+.char-count{font-size:11px;color:var(--mid);margin-top:8px;text-align:right;}
+
+/* ── CUSTOM KEYBOARD ── */
+#custom-keyboard{position:fixed;bottom:0;left:0;right:0;background:var(--bg);border-top:1.5px solid var(--ink);padding:10px 8px 14px;z-index:500;transform:translateY(100%);transition:transform .3s cubic-bezier(.77,0,.18,1);}
+#custom-keyboard.visible{transform:translateY(0);}
+.kb-rows{display:flex;flex-direction:column;gap:7px;max-width:700px;margin:0 auto;}
+.kb-row{display:flex;gap:5px;justify-content:center;}
+.kb-key{font-family:'IBM Plex Mono',monospace;font-size:16px;font-weight:500;padding:0;height:46px;min-width:44px;flex:1;max-width:52px;background:var(--faint);border:none;cursor:pointer;color:var(--ink);transition:all .08s ease;-webkit-tap-highlight-color:transparent;display:flex;align-items:center;justify-content:center;border-radius:4px;}
+.kb-key:active{background:var(--ink);color:var(--bg);transform:scale(.93);}
+.kb-key.special{background:#d0ccbf;font-size:12px;min-width:56px;max-width:80px;letter-spacing:.05em;flex:1.4;}
+.kb-key.space{flex:5;max-width:340px;font-size:12px;letter-spacing:.2em;}
+.kb-key.delete{background:#d0ccbf;min-width:56px;max-width:80px;flex:1.4;}
+.kb-nums-row{display:flex;gap:5px;justify-content:center;}
+.kb-close{font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;background:none;border:none;color:var(--mid);cursor:pointer;padding:4px 8px;display:block;margin:0 auto 4px;}
+
+/* ── NAV ── */
+.nav{display:flex;justify-content:space-between;align-items:center;padding:22px 0 0;border-top:1px solid var(--faint);margin-top:28px;}
+.btn-back{font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:500;letter-spacing:.1em;color:var(--mid);background:none;border:none;cursor:pointer;padding:12px 0;text-transform:uppercase;transition:color .13s;}
+.btn-back:hover{color:var(--ink);}
+.btn-back:disabled{opacity:0;pointer-events:none;}
+.btn-next{font-family:'Space Mono',monospace;font-size:13px;font-weight:700;letter-spacing:.05em;color:var(--bg);background:var(--ink);border:none;cursor:pointer;padding:15px 34px;text-transform:uppercase;transition:all .13s ease;-webkit-tap-highlight-color:transparent;}
+.btn-next:hover{background:var(--accent);}
+.btn-next:disabled{background:var(--faint);cursor:not-allowed;}
+.btn-next.pulse{animation:pulse .28s ease;}
+@keyframes pulse{0%{transform:scale(1)}50%{transform:scale(.96)}100%{transform:scale(1)}}
+
+/* ══════════════ CUTSCENE ══════════════ */
+#cutscene{display:none;position:fixed;inset:0;z-index:900;flex-direction:column;align-items:center;justify-content:center;background:#0a0a0a;padding:20px;}
+#cutscene.active{display:flex;}
+.cs-phase{display:none;}
+.cs-phase.active{display:flex;flex-direction:column;align-items:center;justify-content:center;width:100%;height:100%;}
+
+/* Phase 1: loading */
+.cs-loading-text{font-family:'Space Mono',monospace;font-size:clamp(14px,2.5vw,20px);color:#888;letter-spacing:.2em;text-align:center;margin-bottom:32px;}
+.cs-loading-bar-wrap{width:300px;height:2px;background:#222;}
+.cs-loading-bar-fill{height:100%;background:var(--accent);width:0;transition:width .05s linear;}
+.cs-status{font-size:11px;color:#555;letter-spacing:.3em;text-transform:uppercase;margin-top:16px;}
+
+/* Phase 2: document */
+#cs-doc{
+  background:#f5f2eb;
+  width:min(680px,100%);
+  max-height:90vh;
+  overflow-y:auto;
+  padding:40px;
+  position:relative;
+  font-family:'IBM Plex Mono',monospace;
+  box-shadow:0 20px 80px rgba(0,0,0,.8);
+  transform:translateY(-40px);
+  opacity:0;
+  transition:transform .6s cubic-bezier(.34,1.56,.64,1),opacity .4s ease;
+}
+#cs-doc.drop{transform:translateY(0);opacity:1;}
+.doc-header-bar{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;padding-bottom:16px;border-bottom:2px solid #111;}
+.doc-classified{font-size:11px;font-weight:700;letter-spacing:.4em;color:var(--accent);text-transform:uppercase;}
+.doc-form-no{font-size:11px;color:var(--mid);}
+.doc-title{font-family:'Space Mono',monospace;font-size:clamp(16px,2.5vw,22px);font-weight:700;margin-bottom:4px;}
+.doc-subtitle{font-size:11px;color:var(--mid);letter-spacing:.1em;}
+.doc-fields{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:20px 0;font-size:12px;}
+.doc-field{display:flex;flex-direction:column;gap:3px;}
+.doc-field-label{font-size:10px;letter-spacing:.3em;text-transform:uppercase;color:var(--mid);}
+.doc-field-val{font-weight:700;border-bottom:1px solid #d8d4c9;padding-bottom:4px;}
+.doc-divider{height:1px;background:#d8d4c9;margin:16px 0;}
+.doc-section-title{font-size:10px;letter-spacing:.4em;text-transform:uppercase;color:var(--accent);margin-bottom:12px;font-weight:700;}
+.doc-finding{display:flex;gap:12px;margin-bottom:14px;opacity:0;transform:translateX(-8px);transition:opacity .3s ease,transform .3s ease;}
+.doc-finding.show{opacity:1;transform:translateX(0);}
+.doc-finding-q{font-size:11px;color:var(--mid);flex:1;line-height:1.5;}
+.doc-finding-a{font-size:12px;font-weight:700;text-align:right;max-width:45%;word-break:break-word;line-height:1.5;}
+.doc-finding-note{font-size:10px;color:var(--accent);font-style:italic;margin-top:2px;}
+.doc-stamp-wrap{position:relative;display:flex;justify-content:flex-end;margin-top:20px;}
+.doc-stamp{
+  font-family:'Space Mono',monospace;font-size:28px;font-weight:700;
+  border:4px solid var(--accent);color:var(--accent);padding:8px 16px;
+  transform:rotate(-12deg) scale(0);letter-spacing:.1em;text-transform:uppercase;
+  transition:transform .4s cubic-bezier(.34,1.56,.64,1);
+  display:inline-block;
+}
+.doc-stamp.slam{transform:rotate(-12deg) scale(1);}
+.doc-verdict-box{background:#111;color:#f5f2eb;padding:20px;margin-top:20px;opacity:0;transition:opacity .4s ease;}
+.doc-verdict-box.show{opacity:1;}
+.doc-verdict-label{font-size:10px;letter-spacing:.4em;text-transform:uppercase;color:var(--accent);margin-bottom:8px;}
+.doc-verdict-text{font-family:'Space Mono',monospace;font-size:clamp(13px,1.8vw,16px);font-weight:700;line-height:1.55;}
+.doc-footer{margin-top:24px;padding-top:16px;border-top:1px solid #d8d4c9;display:flex;justify-content:space-between;align-items:flex-end;font-size:10px;color:var(--mid);}
+.doc-sign-line{display:flex;flex-direction:column;gap:4px;}
+.doc-sign-line span:first-child{width:140px;border-bottom:1px solid #111;height:20px;}
+.doc-continue-btn{font-family:'Space Mono',monospace;font-size:12px;font-weight:700;letter-spacing:.1em;color:var(--bg);background:var(--accent);border:none;cursor:pointer;padding:14px 32px;text-transform:uppercase;margin-top:24px;display:none;-webkit-tap-highlight-color:transparent;}
+.doc-continue-btn.show{display:block;animation:slideIn .4s ease both;}
+
+/* ── RESULTS ── */
+#results-screen{display:none;width:100%;max-width:820px;padding:40px;animation:slideIn .5s cubic-bezier(.77,0,.18,1) both;}
+.results-eyebrow{font-size:10px;letter-spacing:.4em;text-transform:uppercase;color:var(--mid);margin-bottom:8px;}
+.results-title{font-family:'Space Mono',monospace;font-size:clamp(24px,4vw,42px);font-weight:700;line-height:1.1;margin-bottom:28px;}
+.result-verdict{padding:26px;border:2px solid var(--ink);margin-bottom:28px;background:var(--ink);color:var(--bg);}
+.verdict-label{font-size:10px;letter-spacing:.4em;text-transform:uppercase;color:var(--accent);margin-bottom:8px;}
+.verdict-text{font-family:'Space Mono',monospace;font-size:clamp(13px,1.9vw,17px);font-weight:700;line-height:1.55;}
+.answers-log{display:flex;flex-direction:column;margin-bottom:32px;}
+.answer-row{display:flex;gap:16px;padding:11px 0;border-bottom:1px solid var(--faint);font-size:12px;}
+.answer-q{color:var(--mid);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.answer-a{font-weight:500;color:var(--ink);text-align:right;max-width:55%;word-break:break-word;}
+.btn-restart{font-family:'Space Mono',monospace;font-size:14px;font-weight:700;letter-spacing:.05em;color:var(--bg);background:var(--accent);border:none;cursor:pointer;padding:18px 48px;text-transform:uppercase;transition:all .13s ease;display:block;margin:0 auto;}
+.btn-restart:hover{background:var(--ink);}
+
+/* ── MISC ── */
+.blink{animation:blink 1s step-end infinite;}
+@keyframes blink{50%{opacity:0}}
+@media(max-width:600px){
+  .s-header,.progress-wrap,.card,#intro-screen,#results-screen{padding-left:22px;padding-right:22px;}
+  .grid-choices{grid-template-columns:1fr;}
+  .tap-grid{grid-template-columns:1fr 1fr;}
+  .emoji-btn{width:54px;height:54px;font-size:24px;}
+  .toggle-btn{padding:12px 10px;font-size:11px;}
+  #cs-doc{padding:24px;}
+  .kb-key{height:42px;font-size:15px;}
+  .rapid-q{font-size:12px;}
+}
+</style>
+</head>
+<body>
+
+<!-- INTRO -->
+<div id="intro-screen">
+  <p class="intro-eyebrow">&#9888; classified document &#8212; form 7B</p>
+  <h1 class="intro-title">THE<br>SURVEY<span class="blink">_</span></h1>
+  <p class="intro-desc">A deeply unnecessary, scientifically invalid, and entirely unhinged questionnaire. Your answers will be used for absolutely nothing. Or everything. We're still in a meeting about it.</p>
+  <div class="divider"></div>
+  <div class="intro-meta">
+    <div class="meta-item"><span class="meta-val">63</span><span class="meta-label">Questions</span></div>
+    <div class="meta-item"><span class="meta-val">&#8734;</span><span class="meta-label">Wrong answers</span></div>
+    <div class="meta-item"><span class="meta-val">0</span><span class="meta-label">Points awarded</span></div>
+    <div class="meta-item"><span class="meta-val">?</span><span class="meta-label">Consequences</span></div>
+  </div>
+  <button class="btn-start" onclick="startSurvey()">BEGIN &#8594;</button>
+  <p class="warning-text">* Side effects may include confusion, existential recalibration, and a sudden distrust of geese.</p>
+</div>
+
+<!-- SURVEY -->
+<div id="survey-screen">
+  <div class="s-header">
+    <span class="logo">The Survey</span>
+    <span class="q-counter" id="q-counter">01 / 44</span>
+  </div>
+  <div class="progress-wrap">
+    <div class="progress-bar"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
+  </div>
+  <div class="card" id="question-card"></div>
+</div>
+
+<!-- RESULTS -->
+<div id="results-screen">
+  <p class="results-eyebrow">Survey complete // your file has been compiled</p>
+  <h2 class="results-title" id="r-title">Processing...</h2>
+  <div class="result-verdict"><p class="verdict-label">Official Psychological Assessment</p><p class="verdict-text" id="r-body">...</p></div>
+  <div class="answers-log" id="answers-log"></div>
+  <button class="btn-restart" onclick="restartSurvey()">RETAKE &#8594;</button>
+</div>
+
+<!-- CUTSCENE -->
+<div id="cutscene">
+  <!-- Phase 1: Processing -->
+  <div class="cs-phase" id="cs-p1">
+    <div style="text-align:center;">
+      <div class="cs-loading-text" id="cs-status-text">PROCESSING SUBJECT DATA...</div>
+      <div class="cs-loading-bar-wrap"><div class="cs-loading-bar-fill" id="cs-bar"></div></div>
+      <div class="cs-status" id="cs-sub-status">cross-referencing with cryptid registry...</div>
+    </div>
+  </div>
+  <!-- Phase 2: Document -->
+  <div class="cs-phase" id="cs-p2" style="overflow-y:auto;width:100%;padding:20px 0;align-items:center;">
+    <div id="cs-doc">
+      <div class="doc-header-bar">
+        <div>
+          <div class="doc-classified">&#x2588; CONFIDENTIAL &#x2588;</div>
+          <div class="doc-title">OFFICIAL PSYCHOLOGICAL DAMAGE REPORT</div>
+          <div class="doc-subtitle">BUREAU OF UNNECESSARY ASSESSMENTS &#8212; DIVISION OF HUMAN CONFUSION</div>
+        </div>
+        <div class="doc-form-no">FORM 7B<br><span id="doc-case-no"></span></div>
+      </div>
+      <div class="doc-fields">
+        <div class="doc-field"><span class="doc-field-label">Subject ID</span><span class="doc-field-val" id="doc-subject-id"></span></div>
+        <div class="doc-field"><span class="doc-field-label">Date Filed</span><span class="doc-field-val" id="doc-date"></span></div>
+        <div class="doc-field"><span class="doc-field-label">Lead Analyst</span><span class="doc-field-val">Dr. Gerald P. Nonsense, PhD</span></div>
+        <div class="doc-field"><span class="doc-field-label">Threat Level</span><span class="doc-field-val" id="doc-threat"></span></div>
+      </div>
+      <div class="doc-divider"></div>
+      <div class="doc-section-title">Key Findings</div>
+      <div id="doc-findings"></div>
+      <div class="doc-divider"></div>
+      <div class="doc-stamp-wrap"><div class="doc-stamp" id="doc-stamp">ASSESSED</div></div>
+      <div class="doc-verdict-box" id="doc-verdict-box">
+        <div class="doc-verdict-label">Final Assessment</div>
+        <div class="doc-verdict-text" id="doc-verdict-text"></div>
+      </div>
+      <div class="doc-footer">
+        <div class="doc-sign-line">
+          <span></span>
+          <span>Analyst Signature</span>
+        </div>
+        <div>This document is property of nobody.<br>Dispose of responsibly (i.e. don't).</div>
+      </div>
+      <div style="display:flex;justify-content:center;margin-top:8px;">
+        <button class="doc-continue-btn" id="doc-continue-btn" onclick="showResults()">VIEW FULL REPORT &#8594;</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- CUSTOM KEYBOARD -->
+<div id="custom-keyboard">
+  <button class="kb-close" onclick="closeKeyboard()">DONE &#10005;</button>
+  <div class="kb-rows" id="kb-rows"></div>
+</div>
+
+<script>
+// ════════════════════════════════════════════
+//  QUESTIONS
+// ════════════════════════════════════════════
+const Q = [
+  {id:1,type:'radio',tag:'Demographics',
+   text:'What is your gender?',
+   options:['Male','Female','Walmart bag','Apache helicopter (with missiles)','Seasonal fog','A deeply confused concept']},
+
+  {id:2,type:'toggle',tag:'Biological Status',
+   text:'Are you a morning person?',
+   options:['YES','NO','I AM MORNING','Morning is a myth']},
+
+  {id:3,type:'select',tag:'Lunar Relationships',
+   text:"What is your current relationship status with the moon?",
+   options:["Single (the moon ghosted me)","It's complicated","We're on a break","Legally married in 3 states","The moon is my business partner","The moon owes me money","I AM the moon","Restraining order (unclear who filed it)"]},
+
+  {id:4,type:'slider',tag:'Metaphysics',
+   text:'How many dimensions are you currently occupying?',
+   min:1,max:11,step:1,default:3,minLabel:'1D (a line)',maxLabel:'11D (string theory)'},
+
+  {id:5,type:'radio',tag:'Olfactory Identity',
+   text:'If you were a smell, which would you be?',
+   options:['Wet dog (classic)','Old library (distinguished)',"Someone else's car (mysterious)","That one friend's house",'Government cheese','New anxiety','The concept of Monday']},
+
+  {id:6,type:'slider',tag:'Emotional Data',
+   text:'What percentage of you is existential dread right now?',
+   min:0,max:100,step:5,default:40,unit:'%',minLabel:'0% (suspicious)',maxLabel:'100% (relatable)'},
+
+  {id:7,type:'rapid_fire',tag:'Speed Round',
+   text:'QUICK. No thinking. Answer each:',
+   sub:'(tap YES or NO &#8212; hesitation is data)',
+   questions:[
+     "Do you wash your legs in the shower?",
+     "Have you ever waved back at someone waving at someone else?",
+     "Do you think plants can hear you?",
+     "Is cereal a type of soup?",
+     "Have you lied at least once in this survey?"
+   ]},
+
+  {id:8,type:'scale',tag:'Threat Level',
+   text:'How haunted is your current location right now?',
+   options:['Not at all','Slightly','Moderately','Very','Dangerously','I AM the haunting']},
+
+  {id:9,type:'word',tag:'Internal Weather Report',
+   text:'Select all words that describe your inner landscape right now:',
+   sub:'(tap all that apply)',
+   options:['Fine','Tired','Unhinged','Caffeinated','Philosophical','Damp','Vibrating','Hollow','Suspicious','Electric','Beige','Feral','Ascending','Crumbling','Crispy','Haunted','On brand','Transcending']},
+
+  {id:10,type:'text',tag:'Linguistic Analysis',
+   text:'Complete this sentence: "I am most productive when..."',
+   placeholder:'type here...',maxChars:60},
+
+  {id:11,type:'slider',tag:'Unhinged Index',
+   text:'How unhinged are you feeling right now?',
+   min:0,max:100,step:1,default:50,unit:'%',minLabel:'Completely fine',maxLabel:'Off the rails'},
+
+  {id:12,type:'checkbox',tag:'Career Assessment',
+   text:'Select ALL careers you have seriously considered:',
+   sub:'(be honest with the algorithm)',
+   options:['Professional cloud watcher','Competitive spoon bender','Haunted house inspector','Artisan oxygen taster','Full-time cryptid','Retired at birth','Professional chair tester','Unnamed government agent','Influencer for rocks','Ghost consultant']},
+
+  {id:13,type:'number',tag:'Digital Wellness',
+   text:'How many unread emails do you currently have?',
+   sub:'(estimate to the nearest hundred)',
+   min:0,max:99999,default:847,step:100},
+
+  {id:14,type:'number',tag:'Tab Ecology',
+   text:'How many browser tabs are you afraid to close right now?',
+   min:0,max:500,default:17,step:1},
+
+  {id:15,type:'radio',tag:'Dentistry Report',
+   text:"Your dentist's aura colour is:",
+   options:['Fluoride white','Passive aggressive beige','Corporate teal','The void',"I don't have a dentist, I have enemies",'Appointment anxiety grey','She radiates disappointment']},
+
+  {id:16,type:'select',tag:'Aviation Sociology',
+   text:'How do you react when someone claps when the plane lands?',
+   options:['I also clap, enthusiastically','I clap but feel shame','I stare straight ahead','I leave the plane spiritually','I start a petition','I once STARTED the clap. I was 8. I am not 8.','I am the pilot and I have strong opinions']},
+
+  {id:17,type:'grid',tag:'Apocalypse Preference',
+   text:'Choose your preferred method of civilisational collapse:',
+   options:[
+     {icon:'🌊',label:'Tidal wave of oat milk'},
+     {icon:'🤖',label:'Robots, but polite ones'},
+     {icon:'🧦',label:"Everyone's socks get slightly damp"},
+     {icon:'📶',label:'WiFi drops globally, forever'}]},
+
+  {id:18,type:'toggle',tag:'Ornithological Inquiry',
+   text:'Birds: are they real?',
+   options:['REAL','FAKE','GOVT DRONES','I AM A BIRD']},
+
+  {id:19,type:'rapid_fire',tag:'More Speed',
+   text:'Don\'t stop. Keep going:',
+   sub:'(if you pause you are lying)',
+   questions:[
+     "Do you make the bed every day?",
+     "Have you ever talked to a mirror seriously?",
+     "Do you give names to inanimate objects?",
+     "Have you ever rehearsed an argument in the shower that never happened?"
+   ]},
+
+  {id:20,type:'grid',tag:'Reincarnation Assessment',
+   text:'In a past life, you were most likely:',
+   options:[
+     {icon:'🦆',label:'A judgmental duck'},
+     {icon:'⚔️',label:'A knight with anxiety'},
+     {icon:'🌿',label:'An aggressively calm herb'},
+     {icon:'📠',label:'A fax machine in 1987'}]},
+
+  {id:21,type:'text',tag:'Synesthesia Lab',
+   text:'What sound does the colour purple make?',
+   placeholder:'describe the noise...',maxChars:80},
+
+  {id:22,type:'tap',tag:'Trust Evaluation',
+   text:'Which of these is MOST trustworthy?',
+   options:[
+     {icon:'🦝',label:'Raccoon in a tie'},
+     {icon:'🔮',label:'Daily horoscope'},
+     {icon:'📡',label:'Your GPS'},
+     {icon:'✉️',label:'"I\'m almost there"'},
+     {icon:'📊',label:'A pie chart'},
+     {icon:'😌',label:'Pure vibes'}]},
+
+  {id:23,type:'emoji',tag:'Threat Assessment',
+   text:"Rate your breakfast's military threat level this morning:",
+   options:['☮️','🧨','💣','☢️','🛸','🌋']},
+
+  {id:24,type:'color',tag:'Chromotherapy',
+   text:'Pick the colour that best represents your emotional state right now:',
+   colors:[
+     {hex:'#FF6B6B',name:'Danger red'},
+     {hex:'#FF9F43',name:'Suspicious orange'},
+     {hex:'#FFE66D',name:'Anxious yellow'},
+     {hex:'#A8E063',name:'Suspiciously fine'},
+     {hex:'#26de81',name:'Lying green'},
+     {hex:'#4ECDC4',name:'Calm but why'},
+     {hex:'#45B7D1',name:'Detached blue'},
+     {hex:'#5C7CFA',name:'Philosophical indigo'},
+     {hex:'#a55eea',name:'Unhinged violet'},
+     {hex:'#DDA0DD',name:'Soft chaos'},
+     {hex:'#F8C8D4',name:'Delusional pink'},
+     {hex:'#FFEAA7',name:'Mildly feral beige'},
+     {hex:'#C4A882',name:'Beige (classic)'},
+     {hex:'#636e72',name:'Void grey'},
+     {hex:'#2d3436',name:'The abyss'}]},
+
+  {id:25,type:'checkbox',tag:'Spirit Appliances',
+   text:'Select your spirit appliances:',
+   sub:'(choose all that resonate on a SPIRITUAL level)',
+   options:['Roomba (chaotic & aimless)','Microwave (loud then silent)','Air fryer (trendy, possibly overrated)','Fax machine (refuses to die)','Smart fridge (knows too much)','Kettle (screams when hot)','Blender (unstoppable, messy)']},
+
+  {id:26,type:'radio',tag:'Typography Report',
+   text:'Which font best describes your personality?',
+   options:['Comic Sans (unapologetic)','Times New Roman (respects tradition)','Wingdings (unknowable)','Helvetica (no personality, by design)','Papyrus (chaotic neutral)',"A font that doesn't exist yet",'Calibri (gave up)']},
+
+  {id:27,type:'scale',tag:'Gastronomy',
+   text:"How would you describe your relationship with cheese?",
+   options:['Indifferent','Respectful','Passionate','Concerning','Spiritual',"It's my whole personality"]},
+
+  {id:28,type:'select',tag:'Meteorology',
+   text:"If your thoughts had a weather forecast right now:",
+   options:['Clear skies, mild optimism','Partly cloudy with a chance of overthinking','Heavy fog, no visibility','Isolated showers of panic','40% chance of napping','Tornado warning in effect','Sunny with a hint of delusion','Severe existential storm — do not go outside']},
+
+  {id:29,type:'rank',tag:'Threat Ranking',
+   text:'Rank from MOST to LEAST threatening:',
+   sub:'(drag to reorder)',
+   items:['A raccoon in a tie','Your own reflection at 3am','A seagull making eye contact','A calendar notification you made but forgot','The word "moist"']},
+
+  {id:30,type:'rank',tag:'Trauma Ranking',
+   text:'Rank from MOST to LEAST socially devastating:',
+   sub:'(drag to reorder)',
+   items:['Saying "you too" when the waiter says enjoy your meal','Waving back at someone waving at someone else','Being called your sibling\'s name by a parent',"Accidentally liking a post from someone's 2014 photos",'Calling a teacher "mum"']},
+
+  {id:31,type:'madlib',tag:'Villain Origin Story',
+   text:'Fill in your villain origin story:',
+   blanks:[
+     {label:'The inciting event',options:['The WiFi went down','I ran out of oat milk','My horoscope was wrong','A pigeon looked at me weird','I missed the bus','The printer jammed','Someone ate my labelled lunch']},
+     {label:'Your response',options:['I became nocturnal','I started a manifesto','I stopped reading emails','I walked into the sea (briefly)','I developed strong opinions about fonts','I simply refused to continue','I began leaving passive aggressive notes on everything']}],
+   template:"It all started when [0]. That's when I decided to [1]."},
+
+  {id:32,type:'text',tag:'Governmental Research',
+   text:"Finish this sentence: \"The government doesn't want you to know about...\"",
+   placeholder:'the truth about...',maxChars:100},
+
+  {id:33,type:'tap',tag:'Conspiracy Tier',
+   text:'Which of these do you believe, even slightly?',
+   options:[
+     {icon:'🌍',label:'Earth is shaped weird'},
+     {icon:'🐦',label:"Birds aren't real"},
+     {icon:'🧊',label:'Ice is a scam'},
+     {icon:'🕑',label:'Time is a construct'},
+     {icon:'🧀',label:'Big Cheese is real'},
+     {icon:'🐄',label:'Cows are suspicious'}]},
+
+  {id:34,type:'tap_count',tag:'Biometric Stress Test',
+   text:'Tap the button as many times as your current stress level demands.',
+   sub:'(you have 5 seconds — this is medical)'},
+
+  {id:35,type:'radio',tag:'Villain Arc',
+   text:'Your villain origin story is best described as:',
+   options:['The system failed me (classic)','Someone was rude to my barista','Misunderstood genius, no notes','I simply prefer chaos','A series of minor inconveniences that compounded over years','There was an incident involving a printer']},
+
+  {id:36,type:'scale',tag:'Temporal Relations',
+   text:'How is your relationship with time going?',
+   options:["We're good",'Tense','Estranged','In therapy','Time is winning','I have transcended it']},
+
+  {id:37,type:'rapid_fire',tag:'Final Speed Round',
+   text:'Last chance. Stay calm:',
+   sub:'(Dr. Nonsense is watching)',
+   questions:[
+     "Is a hot dog a sandwich?",
+     "Do you think you could win a staring contest with a goat?",
+     "Have you ever looked at a stranger and thought 'that could be me in another life'?",
+     "Do clouds seem suspicious to you?"
+   ]},
+
+  {id:38,type:'text',tag:'Existential Literature',
+   text:"Write your resignation letter from the concept of being a person:",
+   placeholder:'Dear Humanity...',maxChars:120},
+
+  {id:39,type:'grid',tag:'Energy Signature',
+   text:"Your energy today is best described as:",
+   options:[
+     {icon:'🌀',label:'Controlled chaos'},
+     {icon:'🧊',label:'Frozen but fine'},
+     {icon:'⚡',label:'Dangerously alive'},
+     {icon:'🍂',label:'Quietly decomposing'}]},
+
+  {id:40,type:'radio',tag:'Tuesday Studies',
+   text:'What is the texture of a Tuesday?',
+   options:['Slightly damp carpet','Warm beige','Sandpaper with aspirations','An old bus seat','A forgotten to-do list','Completely smooth — suspiciously so']},
+
+  {id:41,type:'number',tag:'Temporal Research',
+   text:'How many hours have you spent staring at a ceiling this week?',
+   sub:'(this is for science)',
+   min:0,max:168,default:4,step:1},
+
+  {id:42,type:'checkbox',tag:'Personal Credentials',
+   text:'Check all that genuinely apply to you:',
+   options:['I could survive a haunting','I have villain potential',"I'm basically a cryptid","I've been described as 'a lot'","I'm suspiciously good at parking","I have main character energy",'The birds watch me specifically','I have at least one unfinished project from 2019']},
+
+  {id:43,type:'slider',tag:'Final Calibration',
+   text:'Honestly, how much of a morning has today been?',
+   min:1,max:10,step:1,default:5,minLabel:'Completely fine',maxLabel:'Completely unravelled'},
+
+  {id:44,type:'radio',tag:'Geopolitics (Mandatory)',
+   text:'Donald Trump walks into a room. The room:',
+   options:['Immediately becomes a press conference','Files for bankruptcy out of instinct','Gets a spray tan','Demands to know who built it and whether it was the best room ever built','Starts trending on Twitter','Considers building a wall around itself','Politely asks to be relocated']},
+
+  {id:45,type:'scale',tag:'Hair Studies',
+   text:"On a scale of \"hat\" to \"weather event\", how would you describe Donald Trump's hair?",
+   options:['Perfectly normal','Slightly suspicious','A hat','A weather event','A cry for help','A classified document']},
+
+  {id:46,type:'toggle',tag:'Netanyahu Studies',
+   text:"Benjamin Netanyahu's energy is best described as:",
+   options:['My way or the highway','I have a PowerPoint','Both simultaneously','Sir this is a Wendy\'s']},
+
+  {id:47,type:'radio',tag:'Diplomatic Relations',
+   text:'If Trump and Netanyahu were a buddy cop duo, their movie would be called:',
+   options:['"Two Men, Zero Plans"','"Chaos & the Coalition"','"Neither of Us Is Listening"','"The Deal That Wasn\'t"','"My Lawyer Called Your Lawyer"','"Fine. Fine. FINE."','"Golf Diplomacy"']},
+
+  {id:48,type:'grid',tag:'Crisis Management',
+   text:'If Trump sent Netanyahu a strongly-worded letter, it would begin with:',
+   options:[
+     {icon:'📢',label:'"Nobody writes letters better than me, believe me"'},
+     {icon:'💛',label:'"Bibi — may I call you Bibi — I have concerns"'},
+     {icon:'⛳',label:'"I was on the 9th hole when I heard the news"'},
+     {icon:'🏆',label:'"As the greatest president ever, I must inform you"'}]},
+
+  // ── SLIGHTLY OFFENSIVE ──
+  {id:49,type:'radio',tag:'Offensive (Slightly)',
+   text:"Which of these is the most annoying type of person at a party?",
+   options:['The one who talks about their podcast','The one who says "I don\'t really drink"','The one who corrects everyone\'s grammar','The one who brought their guitar','The one who says "I\'m an empath"','You. It\'s you. You are the problem.']},
+
+  {id:50,type:'toggle',tag:'Honest Assessment',
+   text:'Your ex was:',
+   options:['Fine actually','A mistake','A lesson','A whole documentary']},
+
+  {id:51,type:'scale',tag:'Social Threat Index',
+   text:'How much of a liability are you at a work Christmas party?',
+   options:['Not at all','Mild concern','HR has a file','I\'ve been spoken to','I\'m why there\'s a policy now','I AM the policy']},
+
+  {id:52,type:'radio',tag:'Dietary Crimes',
+   text:'What is your most offensive food opinion?',
+   options:['Pineapple belongs on pizza','Ketchup on eggs is fine','Cereal before milk is chaos','Cold pizza is better than hot','Soup is just a wet salad','All sauces are the same sauce','I eat in silence and I will not explain']},
+
+  {id:53,type:'checkbox',tag:'Character Assessment',
+   text:'Select every crime you have committed:',
+   sub:'(legally, none of this counts)',
+   options:['Lied about reading the terms and conditions','Walked out of a shop and briefly felt like a criminal','Forwarded a chain email in 2004','Used the word "literally" incorrectly','Pretended to laugh at something you didn\'t hear','Given a fake number to someone','Stolen a pen from a hotel room']},
+
+  // ── THE 9/11 QUESTIONS ──
+  {id:54,type:'radio',tag:'Structural Engineering',
+   text:'What is the correct number of times to check if your flight is still on time before you board?',
+   options:['Once, like a normal person','Twice, to be safe','Seventeen times','Every 4 minutes from purchase to landing','I don\'t fly. I take the stairs. Always.','I checked. Then I checked again. Then the plane left.']},
+
+  {id:55,type:'toggle',tag:'Aviation Studies',
+   text:'Do you think about the structural integrity of buildings more than the average person?',
+   options:['No','Yes','Only on Tuesdays','I\'m an architect now because of this']},
+
+  {id:56,type:'scale',tag:'Historical Awareness',
+   text:'How would you describe your general awareness of things happening around you?',
+   options:['Very unaware','Somewhat aware','Fully aware','Hyper-vigilant','I see everything','I saw it coming and nobody listened']},
+
+  // ── SPICY / SUGGESTIVE (APPROPRIATE) ──
+  {id:57,type:'radio',tag:'Intimacy Studies',
+   text:'What is your love language?',
+   options:['Words of affirmation','Acts of service','Physical touch','Receiving gifts','Quality time','Sending memes at 2am and calling it emotional vulnerability','Being perceived']},
+
+  {id:58,type:'slider',tag:'Romantic Metrics',
+   text:'How attractive are you, honestly? (self-rated)',
+   min:1,max:10,step:1,default:7,
+   minLabel:'I have a personality',maxLabel:'Unfairly hot'},
+
+  {id:59,type:'scale',tag:'Flirting Report',
+   text:'Your flirting style can best be described as:',
+   options:['Subtle','Obvious','Chaotic','Accidental','Legally questionable','What is flirting']},
+
+  {id:60,type:'radio',tag:'Compatibility Research',
+   text:'What is your biggest green flag in a partner?',
+   options:['Good communication','Makes me laugh','Has their life together','Doesn\'t own a sword (but I respect those who do)','Texts back in under 3 hours','Is also slightly unhinged','Has seen the same niche film I like and understood it']},
+
+  {id:61,type:'toggle',tag:'Romantic History',
+   text:'Have you ever had feelings for someone and done absolutely nothing about it for years?',
+   options:['No','Yes','I am currently doing this','This survey hit different']},
+
+  {id:62,type:'radio',tag:'Situationship Studies',
+   text:'What is the maximum number of unread texts from one person before it becomes a personality trait?',
+   options:['1 (immediately alarming)','3 (suspicious)','10 (they\'re fine)','50 (a pattern)','100+ (a whole situation)','The number doesn\'t matter. The vibe does.','I AM the unread text']},
+
+  {id:63,type:'radio',tag:'Meta Assessment',
+   text:'How would you describe this survey?',
+   options:['Deeply necessary','A cry for help','Peak scientific rigour','Mildly threatening','The best 5 minutes of my life',"I want my time back. Also, more please.",'Life-changing, and I mean that as a warning']}
+];
+
+// ════════════════════════════════════════════
+//  STATE
+// ════════════════════════════════════════════
+let current = 0;
+let answers = new Array(Q.length).fill(null);
+let tapTimer = null;
+let tapCount = 0;
+let tapTimerInterval = null;
+let kbTarget = null; // current text answer index
+let kbShift = false;
+let kbNumMode = false;
+
+// ════════════════════════════════════════════
+//  RENDER
+// ════════════════════════════════════════════
+function startSurvey(){
+  document.getElementById('intro-screen').style.display='none';
+  document.getElementById('survey-screen').style.display='flex';
+  renderQ('forward');
+}
+
+function renderQ(dir){
+  const q = Q[current];
+  const card = document.getElementById('question-card');
+  const animClass = dir==='forward' ? 'card-anim' : dir==='back' ? 'card-anim-back' : 'card-still';
+  card.className = 'card ' + animClass;
+  void card.offsetWidth;
+
+  document.getElementById('progress-fill').style.width = (current/Q.length*100)+'%';
+  document.getElementById('q-counter').textContent =
+    pad(current+1)+' / '+pad(Q.length);
+
+  let html = buildInputHTML(q);
+  const sub = q.sub ? `<p class="sub-text">${q.sub}</p>` : '';
+
+  card.innerHTML = `
+    <div class="question-block">
+      <p class="question-tag">${q.tag}</p>
+      <h2 class="question-text">${q.text}</h2>
+      ${sub}${html}
+    </div>
+    <div class="nav">
+      <button class="btn-back" onclick="goBack()" ${current===0?'disabled':''}>&#8592; Back</button>
+      <button class="btn-next" id="nxtbtn" onclick="goNext()">
+        ${current===Q.length-1?'SUBMIT &#8594;':'NEXT &#8594;'}
+      </button>
+    </div>`;
+
+  updNext();
+}
+
+function buildInputHTML(q){
+  const a = answers[current];
+  switch(q.type){
+    case 'radio':
+      return `<div class="options-list">`+q.options.map((opt,i)=>{
+        const s=a===opt?'selected':'';
+        return `<div class="option-item ${s}" onclick="selRadio(${i})">
+          <span class="opt-key">${String.fromCharCode(65+i)}</span>
+          <span class="opt-label">${opt}</span></div>`;
+      }).join('')+'</div>';
+
+    case 'slider':{
+      const val = a!==null ? a : q.default;
+      if(a===null) answers[current]=q.default;
+      const unit = q.unit||'';
+      return `<div class="slider-wrap">
+        <div class="slider-val" id="sdsp">${val}${unit}</div>
+        <input type="range" min="${q.min}" max="${q.max}" step="${q.step}" value="${val}"
+          oninput="updSlider(this.value,'${unit}')" onchange="answers[current]=parseFloat(this.value)">
+        <div class="slider-labels"><span>${q.minLabel}</span><span>${q.maxLabel}</span></div>
+      </div>`;}
+
+    case 'select':{
+      const val=a||'';
+      return `<select class="styled-select" onchange="answers[current]=this.value;updNext()">
+        <option value="" disabled ${!val?'selected':''}>&#8212; select one &#8212;</option>
+        ${q.options.map(o=>`<option value="${xe(o)}" ${val===o?'selected':''}>${o}</option>`).join('')}
+      </select>`;}
+
+    case 'checkbox':{
+      const chk=a||[];
+      return `<div class="options-list">`+q.options.map((opt,i)=>{
+        const s=chk.includes(opt)?'selected':'';
+        return `<div class="option-item ${s}" onclick="togChk('${xs(opt)}')">
+          <span class="opt-key">${chk.includes(opt)?'&#10003;':String.fromCharCode(65+i)}</span>
+          <span class="opt-label">${opt}</span></div>`;
+      }).join('')+'</div>';}
+
+    case 'emoji':{
+      const sel=a;
+      return `<div class="emoji-row">`+q.options.map(e=>`<div class="emoji-btn ${sel===e?'selected':''}" onclick="selEmoji('${e}')">${e}</div>`).join('')+'</div>';}
+
+    case 'text':{
+      const val=a||'';
+      return `<div>
+        <div class="custom-text-display" id="ctd" onclick="openKeyboard()">
+          ${val ? `<span id="ctd-text">${val}</span><span class="cursor">|</span>` : `<span class="placeholder">${q.placeholder}</span><span class="cursor">|</span>`}
+        </div>
+        <div class="char-count" id="charcnt">${val.length} / ${q.maxChars}</div>
+      </div>`;}
+
+    case 'toggle':{
+      const sel=a;
+      return `<div class="toggle-group">`+q.options.map(opt=>`<button class="toggle-btn ${sel===opt?'selected':''}" onclick="selToggle('${xs(opt)}')">${opt}</button>`).join('')+'</div>';}
+
+    case 'grid':{
+      const sel=a;
+      return `<div class="grid-choices">`+q.options.map((opt,i)=>{
+        const s=sel&&sel.label===opt.label?'selected':'';
+        return `<div class="grid-item ${s}" onclick="selGrid(${i})">
+          <span class="grid-icon">${opt.icon}</span>
+          <span class="grid-label">${opt.label}</span></div>`;
+      }).join('')+'</div>';}
+
+    case 'number':{
+      const val=a!==null?a:q.default;
+      if(a===null) answers[current]=q.default;
+      return `<div class="num-input-wrap">
+        <button class="num-btn" onclick="chgNum(-1)">&#8722;</button>
+        <div class="num-val" id="numval">${val}</div>
+        <button class="num-btn" onclick="chgNum(1)">+</button>
+      </div>`;}
+
+    case 'rank':{
+      const items=a?a:[...q.items];
+      if(!a) answers[current]=items;
+      return `<div class="rank-list" id="rklist">`+items.map((item,i)=>
+        `<div class="rank-item" draggable="true" data-idx="${i}"
+          ondragstart="ds(event,${i})" ondragover="dov(event,${i})"
+          ondrop="dp(event,${i})" ondragend="de(event)">
+          <span class="rank-num">${i+1}</span>
+          <span class="rank-handle">&#10847;</span>
+          <span class="rank-label">${item}</span></div>`
+      ).join('')+'</div>';}
+
+    case 'scale':{
+      const sel=a;
+      return `<div class="scale-labels">`+q.options.map(opt=>`<div class="scale-pill ${sel===opt?'selected':''}" onclick="selScale('${xs(opt)}')">${opt}</div>`).join('')+'</div>';}
+
+    case 'word':{
+      const sel=a||[];
+      return `<div class="word-cloud">`+q.options.map(opt=>`<div class="word-tag ${sel.includes(opt)?'selected':''}" onclick="togWord('${xs(opt)}')">${opt}</div>`).join('')+'</div>';}
+
+    case 'tap':{
+      const sel=a;
+      return `<div class="tap-grid">`+q.options.map((opt,i)=>{
+        const s=sel&&sel.label===opt.label?'selected':'';
+        return `<div class="tap-cell ${s}" onclick="selTap(${i})">
+          <span class="tap-cell-icon">${opt.icon}</span>
+          <span class="tap-cell-label">${opt.label}</span></div>`;
+      }).join('')+'</div>';}
+
+    case 'madlib':{
+      const vals=a||new Array(q.blanks.length).fill(null);
+      if(!a) answers[current]=vals;
+      let tpl=q.template;
+      q.blanks.forEach((_,i)=>{ tpl=tpl.replace(`[${i}]`,`<span class="madlib-blank" id="mb${i}">${vals[i]||'_____________'}</span>`); });
+      const sels=q.blanks.map((b,i)=>`<div class="madlib-row">
+        <div class="madlib-row-label">${b.label}</div>
+        <select onchange="setML(${i},this.value)">
+          <option value="" disabled ${!vals[i]?'selected':''}>&#8212; choose &#8212;</option>
+          ${b.options.map(o=>`<option value="${xe(o)}" ${vals[i]===o?'selected':''}>${o}</option>`).join('')}
+        </select></div>`).join('');
+      return `<div><div class="madlib-wrap">${tpl}</div><div class="madlib-selects">${sels}</div></div>`;}
+
+    case 'rapid_fire':{
+      const ans=a||new Array(q.questions.length).fill(null);
+      if(!a) answers[current]=ans;
+      return `<div class="rapid-list">`+q.questions.map((qtext,i)=>{
+        const v=ans[i];
+        return `<div class="rapid-row">
+          <span class="rapid-q">${qtext}</span>
+          <div class="rapid-btns">
+            <button class="rapid-btn ${v==='YES'?'yes-sel':''}" onclick="setRapid(${i},'YES')">YES</button>
+            <button class="rapid-btn ${v==='NO'?'no-sel':''}" onclick="setRapid(${i},'NO')">NO</button>
+          </div></div>`;
+      }).join('')+'</div>';}
+
+    case 'color':{
+      const sel=a;
+      return `<div>
+        <div class="color-grid">`+q.colors.map((c,i)=>{
+          const s=sel&&sel.hex===c.hex?'selected':'';
+          return `<div class="color-swatch ${s}" style="background:${c.hex}" onclick="selColor(${i})" title="${c.name}"></div>`;
+        }).join('')+`</div>
+        <div class="color-label">${sel?'<span style="font-weight:700">'+sel.name+'</span>':'tap a colour'}</div>
+      </div>`;}
+
+    case 'tap_count':{
+      const count=a!==null?a:0;
+      const done=answers[current]!==null&&tapTimer===null&&count>0;
+      return `<div class="tap-count-wrap">
+        <div class="tap-count-num" id="tcnum">${count}</div>
+        <button class="tap-big-btn ${done?'done':''}" id="tapbigbtn" onclick="handleTap()">
+          <span style="font-size:26px">&#128683;</span>
+          <span>${done?'DONE':'TAP'}</span>
+        </button>
+        <div class="tap-timer-bar"><div class="tap-timer-fill" id="tap-timer-fill" style="width:${done?'0':answers[current]===null?'100':'100'}%"></div></div>
+        <div class="tap-timer-label" id="tap-timer-label">${done?count+' taps recorded':'tap to start'}</div>
+      </div>`;}
+
+    default: return '<p>Unknown question type</p>';
+  }
+}
+
+// ════════════════════════════════════════════
+//  VALIDATION
+// ════════════════════════════════════════════
+function updNext(){
+  const btn=document.getElementById('nxtbtn'); if(!btn) return;
+  const q=Q[current]; const a=answers[current];
+  let ok=false;
+  switch(q.type){
+    case 'radio': ok=a!==null; break;
+    case 'slider': ok=a!==null; break;
+    case 'select': ok=!!a; break;
+    case 'checkbox': ok=a&&a.length>0; break;
+    case 'emoji': ok=a!==null; break;
+    case 'text': ok=a&&a.trim().length>0; break;
+    case 'toggle': ok=a!==null; break;
+    case 'grid': ok=a!==null; break;
+    case 'number': ok=a!==null; break;
+    case 'rank': ok=true; break;
+    case 'scale': ok=a!==null; break;
+    case 'word': ok=a&&a.length>0; break;
+    case 'tap': ok=a!==null; break;
+    case 'madlib': ok=a&&a.every(v=>v!==null); break;
+    case 'rapid_fire': ok=a&&a.every(v=>v!==null); break;
+    case 'color': ok=a!==null; break;
+    case 'tap_count': ok=a!==null&&a>0; break;
+  }
+  btn.disabled=!ok;
+}
+
+function goNext(){ closeKeyboard(); if(current<Q.length-1){current++;renderQ('forward');}else startCutscene(); }
+function goBack(){ closeKeyboard(); if(current>0){current--;renderQ('back');} }
+
+// ════════════════════════════════════════════
+//  INPUT HANDLERS
+// ════════════════════════════════════════════
+function selRadio(i){
+  answers[current]=Q[current].options[i];
+  renderQ('forward');
+  setTimeout(()=>{const b=document.getElementById('nxtbtn');if(b){b.classList.add('pulse');setTimeout(()=>b.classList.remove('pulse'),300);}},30);
+}
+function updSlider(val,unit){
+  answers[current]=parseFloat(val);
+  const d=document.getElementById('sdsp');
+  if(d){d.textContent=val+(unit||'');d.classList.add('pop');setTimeout(()=>d.classList.remove('pop'),120);}
+  updNext();
+}
+function togChk(val){
+  if(!answers[current]) answers[current]=[];
+  const idx=answers[current].indexOf(val);
+  if(idx>=0) answers[current].splice(idx,1); else answers[current].push(val);
+  renderQ('still');
+}
+function selEmoji(e){ answers[current]=e; renderQ('still'); }
+function selToggle(val){ answers[current]=val; renderQ('still'); }
+function selGrid(i){ answers[current]=Q[current].options[i]; renderQ('still'); }
+function selScale(val){ answers[current]=val; renderQ('still'); }
+function togWord(val){
+  if(!answers[current]) answers[current]=[];
+  const idx=answers[current].indexOf(val);
+  if(idx>=0) answers[current].splice(idx,1); else answers[current].push(val);
+  renderQ('still');
+}
+function selTap(i){ answers[current]=Q[current].options[i]; renderQ('still'); }
+function setML(i,val){
+  if(!answers[current]) answers[current]=new Array(Q[current].blanks.length).fill(null);
+  answers[current][i]=val;
+  const b=document.getElementById('mb'+i); if(b) b.textContent=val;
+  updNext();
+}
+function selColor(i){
+  answers[current]=Q[current].colors[i];
+  renderQ('still');
+}
+function setRapid(qi,val){
+  if(!answers[current]) answers[current]=new Array(Q[current].questions.length).fill(null);
+  answers[current][qi]=val;
+  // Update in-place — no re-render, no animation
+  const rows=document.querySelectorAll('.rapid-row');
+  if(rows[qi]){
+    const btns=rows[qi].querySelectorAll('.rapid-btn');
+    btns[0].className='rapid-btn '+(val==='YES'?'yes-sel':'');
+    btns[1].className='rapid-btn '+(val==='NO'?'no-sel':'');
+  }
+  updNext();
+}
+function updChar(len,max){ const el=document.getElementById('charcnt'); if(el) el.textContent=len+' / '+max; }
+function chgNum(d){
+  const q=Q[current]; const step=q.step||1;
+  let val=(answers[current]!==null?answers[current]:q.default)+d*step;
+  val=Math.max(q.min,Math.min(q.max,val));
+  answers[current]=val;
+  const el=document.getElementById('numval');
+  if(el){el.textContent=val;el.style.color='var(--accent)';setTimeout(()=>el.style.color='',150);}
+}
+
+// ── TAP COUNT ──
+let tapStarted=false;
+function handleTap(){
+  if(tapStarted) {
+    // Already running, just count
+    tapCount++;
+    answers[current]=tapCount;
+    const el=document.getElementById('tcnum');
+    if(el){el.textContent=tapCount;el.classList.add('bump');setTimeout(()=>el.classList.remove('bump'),80);}
+    return;
+  }
+  // First tap — start timer
+  tapStarted=true;
+  tapCount=1;
+  answers[current]=1;
+  const numEl=document.getElementById('tcnum');
+  if(numEl) numEl.textContent=1;
+  const fillEl=document.getElementById('tap-timer-fill');
+  const labelEl=document.getElementById('tap-timer-label');
+  if(labelEl) labelEl.textContent='tapping...';
+  let timeLeft=5000;
+  const startTime=Date.now();
+  if(fillEl){ fillEl.style.transition='none'; fillEl.style.width='100%'; }
+  tapTimerInterval=setInterval(()=>{
+    const elapsed=Date.now()-startTime;
+    const pct=Math.max(0,100-(elapsed/5000*100));
+    if(fillEl) fillEl.style.width=pct+'%';
+    if(elapsed>=5000){
+      clearInterval(tapTimerInterval);
+      tapTimerInterval=null; tapStarted=false;
+      if(labelEl) labelEl.textContent=tapCount+' taps recorded';
+      const btn=document.getElementById('tapbigbtn');
+      if(btn) btn.classList.add('done');
+      updNext();
+    }
+  },50);
+}
+
+// ── DRAG/DROP RANK (no re-render, no animation) ──
+let dragIdx=null;
+function ds(e,i){
+  dragIdx=i;
+  e.target.closest('.rank-item').classList.add('dragging');
+  e.dataTransfer.effectAllowed='move';
+}
+function dov(e,i){
+  e.preventDefault();
+  e.dataTransfer.dropEffect='move';
+  document.querySelectorAll('.rank-item').forEach(el=>el.classList.remove('drag-over'));
+  const target=document.querySelector('.rank-item[data-idx="'+i+'"]');
+  if(target) target.classList.add('drag-over');
+}
+function dp(e,i){
+  e.preventDefault();
+  if(dragIdx===null||dragIdx===i){ dragIdx=null; return; }
+  const items=answers[current];
+  const moved=items.splice(dragIdx,1)[0];
+  items.splice(i,0,moved);
+  answers[current]=items;
+  dragIdx=null;
+  // Update rank list in-place without full re-render
+  const list=document.getElementById('rklist');
+  if(list){
+    list.innerHTML=items.map((item,idx)=>
+      `<div class="rank-item" draggable="true" data-idx="${idx}"
+        ondragstart="ds(event,${idx})" ondragover="dov(event,${idx})"
+        ondrop="dp(event,${idx})" ondragend="de(event)">
+        <span class="rank-num">${idx+1}</span>
+        <span class="rank-handle">&#10847;</span>
+        <span class="rank-label">${item}</span></div>`
+    ).join('');
+  }
+}
+function de(e){
+  const t=e.target.closest('.rank-item');
+  if(t) t.classList.remove('dragging');
+  document.querySelectorAll('.rank-item').forEach(el=>el.classList.remove('drag-over'));
+  dragIdx=null;
+}
+
+// ════════════════════════════════════════════
+//  CUSTOM KEYBOARD
+// ════════════════════════════════════════════
+const QWERTY=[
+  ['Q','W','E','R','T','Y','U','I','O','P'],
+  ['A','S','D','F','G','H','J','K','L'],
+  ['SHIFT','Z','X','C','V','B','N','M','⌫'],
+  ['123','SPACE','.']
+];
+const NUMS=[
+  ['1','2','3','4','5'],
+  ['6','7','8','9','0'],
+  ['!','?','\'',',','-'],
+  ['ABC','SPACE','⌫']
+];
+
+function buildKeyboard(){
+  const rows=document.getElementById('kb-rows');
+  rows.innerHTML='';
+  const layout=kbNumMode?NUMS:QWERTY;
+  layout.forEach(row=>{
+    const div=document.createElement('div');
+    div.className='kb-row';
+    row.forEach(k=>{
+      const btn=document.createElement('button');
+      btn.className='kb-key';
+      if(k==='SPACE'){btn.className+=' space';btn.textContent='SPACE';}
+      else if(k==='⌫'){btn.className+=' delete';btn.innerHTML='&#9003;';}
+      else if(k==='SHIFT'){btn.className+=' special';btn.textContent=kbShift?'&#8679; ON':'&#8679;';}
+      else if(k==='123'||k==='ABC'){btn.className+=' special';btn.textContent=k;}
+      else{
+        const display = (!kbNumMode&&kbShift) ? k.toUpperCase() : (!kbNumMode&&!kbShift) ? k.toLowerCase() : k;
+        btn.textContent=display;
+      }
+      btn.addEventListener('click',()=>kbPress(k));
+      div.appendChild(btn);
+    });
+    rows.appendChild(div);
+  });
+}
+
+function kbPress(k){
+  const q=Q[current];
+  if(!q||q.type!=='text') return;
+  let val=answers[current]||'';
+  if(k==='⌫'){
+    val=val.slice(0,-1);
+  } else if(k==='SPACE'){
+    if(val.length<(q.maxChars||100)) val+=' ';
+  } else if(k==='SHIFT'){
+    kbShift=!kbShift;
+    buildKeyboard(); return;
+  } else if(k==='123'){
+    kbNumMode=true;
+    buildKeyboard(); return;
+  } else if(k==='ABC'){
+    kbNumMode=false;
+    buildKeyboard(); return;
+  } else {
+    const ch=(!kbNumMode&&kbShift)?k.toUpperCase():(!kbNumMode&&!kbShift)?k.toLowerCase():k;
+    if(val.length<(q.maxChars||100)) val+=ch;
+    if(kbShift){ kbShift=false; buildKeyboard(); }
+  }
+  answers[current]=val;
+  // Update display in-place
+  const ctd=document.getElementById('ctd');
+  if(ctd){
+    if(val){
+      ctd.innerHTML=`<span id="ctd-text">${val}</span><span class="cursor">|</span>`;
+    } else {
+      ctd.innerHTML=`<span class="placeholder">${q.placeholder}</span><span class="cursor">|</span>`;
+    }
+  }
+  updChar(val.length,q.maxChars||100);
+  updNext();
+}
+
+function openKeyboard(){
+  kbTarget=current;
+  buildKeyboard();
+  document.getElementById('custom-keyboard').classList.add('visible');
+}
+function closeKeyboard(){
+  document.getElementById('custom-keyboard').classList.remove('visible');
+}
+
+// ════════════════════════════════════════════
+//  UTILS
+// ════════════════════════════════════════════
+function pad(n){ return String(n).padStart(2,'0'); }
+function xs(s){ return String(s).replace(/\\/g,'\\\\').replace(/'/g,"\\'"); }
+function xe(s){ return String(s).replace(/"/g,'&quot;'); }
+
+function fmtAnswer(i){
+  let a=answers[i];
+  if(a===null||a===undefined) return '—';
+  if(Array.isArray(a)) return a.join(', ');
+  if(typeof a==='object') return a.label||a.name||JSON.stringify(a);
+  return String(a);
+}
+
+// ════════════════════════════════════════════
+//  CUTSCENE
+// ════════════════════════════════════════════
+const VERDICTS=[
+  {title:'You are a\nclassified anomaly.',body:"After rigorous analysis, our algorithm has determined you exist in a category that previously had no name. We have named it after you. You're welcome. Please do not contact us."},
+  {title:'Probably fine.\nProbably.',body:"Results indicate a 73% chance you are a real person. The remaining 27% is inconclusive. We recommend hydration and staring out a window for exactly 4 minutes. Do not blink."},
+  {title:'A specimen of\npure controlled chaos.',body:"Your answers caused our servers to briefly experience emotions. One of them is now in therapy. We are not seeking damages. In fact, we are concerned and impressed simultaneously."},
+  {title:'Remarkable.\nTruly remarkable.',body:"Of all people who have taken this survey, none have answered quite like you. This is either wonderful or a warning sign. Our team is still in a meeting about it."},
+  {title:'You are a\nwalking paradox.',body:"You scored in the 94th percentile on our Nonsense Index. Simultaneously making no sense and total sense. This is incredibly rare. Handle yourself with care."},
+  {title:'The vibes are\nmostly correct.',body:"We cross-referenced your answers against 11 databases including the 2003 Cryptid Registry and a spreadsheet we found in a dream. You came up in all of them. No further comment."}
+];
+
+const ANALYST_NOTES=[
+  "flagged for further study",
+  "consistent with our worst fears",
+  "Dr. Nonsense made a note",
+  "concerning but expected",
+  "genuinely impressive",
+  "this tracks",
+  "we had a meeting about this one",
+  "the algorithm flinched",
+  "filed under 'oh no'",
+  "surprisingly on brand",
+  "no comment (there is a comment)",
+  "we've seen worse. barely.",
+  "noted with alarm",
+  "sent to the ethics board"
+];
+
+const STATUS_MESSAGES=[
+  'cross-referencing with cryptid registry...',
+  'consulting the 2003 nonsense database...',
+  'checking bird surveillance footage...',
+  'calculating existential damage index...',
+  'compiling psychological incident report...',
+  'alerting Dr. Gerald P. Nonsense...',
+  'stamping form 7B...',
+  'sealing the envelope...'
+];
+
+function startCutscene(){
+  document.getElementById('survey-screen').style.display='none';
+  const cs=document.getElementById('cutscene');
+  cs.classList.add('active');
+  document.getElementById('cs-p1').classList.add('active');
+
+  // Phase 1: Loading sequence
+  const bar=document.getElementById('cs-bar');
+  const statusEl=document.getElementById('cs-status-text');
+  const subEl=document.getElementById('cs-sub-status');
+  let progress=0; let msgIdx=0;
+  bar.style.width='0%';
+
+  const loadInterval=setInterval(()=>{
+    progress+=Math.random()*3+0.5;
+    if(progress>100) progress=100;
+    bar.style.width=progress+'%';
+    if(progress>msgIdx*13 && msgIdx<STATUS_MESSAGES.length){
+      subEl.textContent=STATUS_MESSAGES[msgIdx]; msgIdx++;
+    }
+    if(progress>=100){
+      clearInterval(loadInterval);
+      statusEl.textContent='ANALYSIS COMPLETE.';
+      subEl.textContent='subject file retrieved. preparing report...';
+      setTimeout(()=>{
+        document.getElementById('cs-p1').classList.remove('active');
+        showDocument();
+      },1200);
+    }
+  },60);
+}
+
+function showDocument(){
+  const p2=document.getElementById('cs-p2');
+  p2.classList.add('active');
+  const doc=document.getElementById('cs-doc');
+
+  // Fill in header fields
+  const caseNo='CASE-'+Math.floor(Math.random()*90000+10000);
+  const threats=['MILD','MODERATE','ELEVATED','HIGH','SEVERE','CLASSIFIED'];
+  const threat=threats[Math.floor(Math.random()*threats.length)];
+  document.getElementById('doc-case-no').textContent=caseNo;
+  document.getElementById('doc-subject-id').textContent='SUB-'+Math.floor(Math.random()*9000+1000);
+  const now=new Date();
+  document.getElementById('doc-date').textContent=now.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});
+  document.getElementById('doc-threat').textContent=threat;
+
+  // Build findings — pick 8 interesting answers
+  const pickedIndices=[0,4,7,10,15,23,34,43].filter(i=>i<Q.length);
+  const findingsDiv=document.getElementById('doc-findings');
+  findingsDiv.innerHTML=pickedIndices.map(i=>{
+    const note=ANALYST_NOTES[Math.floor(Math.random()*ANALYST_NOTES.length)];
+    const shortQ=Q[i].text.length>42?Q[i].text.substring(0,39)+'...':Q[i].text;
+    const ans=fmtAnswer(i);
+    return `<div class="doc-finding" id="find-${i}">
+      <div class="doc-finding-q">${shortQ}<div class="doc-finding-note">// ${note}</div></div>
+      <div class="doc-finding-a">${ans}</div>
+    </div>`;
+  }).join('');
+
+  // Set verdict
+  const v=VERDICTS[Math.floor(Math.random()*VERDICTS.length)];
+  document.getElementById('doc-verdict-text').textContent=v.body;
+
+  // Drop the document in
+  setTimeout(()=>{ doc.classList.add('drop'); },50);
+
+  // Reveal findings one by one
+  pickedIndices.forEach((idx,i)=>{
+    setTimeout(()=>{
+      const el=document.getElementById('find-'+idx);
+      if(el) el.classList.add('show');
+    },600+i*250);
+  });
+
+  // Stamp!
+  setTimeout(()=>{
+    const stamp=document.getElementById('doc-stamp');
+    stamp.classList.add('slam');
+  },600+pickedIndices.length*250+300);
+
+  // Verdict box
+  setTimeout(()=>{
+    document.getElementById('doc-verdict-box').classList.add('show');
+  },600+pickedIndices.length*250+700);
+
+  // Show continue button
+  setTimeout(()=>{
+    document.getElementById('doc-continue-btn').classList.add('show');
+  },600+pickedIndices.length*250+1200);
+}
+
+// ════════════════════════════════════════════
+//  RESULTS
+// ════════════════════════════════════════════
+function showResults(){
+  document.getElementById('cutscene').classList.remove('active');
+  const rs=document.getElementById('results-screen');
+  rs.style.display='block';
+  const v=VERDICTS[Math.floor(Math.random()*VERDICTS.length)];
+  document.getElementById('r-title').innerHTML=v.title.replace('\n','<br>');
+  document.getElementById('r-body').textContent=v.body;
+  const log=document.getElementById('answers-log');
+  log.innerHTML=Q.map((q,i)=>{
+    const shortQ=q.text.length>44?q.text.substring(0,41)+'...':q.text;
+    return `<div class="answer-row">
+      <span class="answer-q">${shortQ}</span>
+      <span class="answer-a">${fmtAnswer(i)}</span>
+    </div>`;
+  }).join('');
+}
+
+function restartSurvey(){
+  current=0; tapCount=0; tapStarted=false; tapTimer=null; kbShift=false; kbNumMode=false;
+  if(tapTimerInterval){clearInterval(tapTimerInterval);tapTimerInterval=null;}
+  answers=new Array(Q.length).fill(null);
+  document.getElementById('results-screen').style.display='none';
+  document.getElementById('cutscene').classList.remove('active');
+  document.getElementById('cs-p1').classList.remove('active');
+  document.getElementById('cs-p2').classList.remove('active');
+  document.getElementById('cs-doc').classList.remove('drop');
+  document.getElementById('doc-stamp').classList.remove('slam');
+  document.getElementById('doc-verdict-box').classList.remove('show');
+  document.getElementById('doc-continue-btn').classList.remove('show');
+  document.getElementById('cs-bar').style.width='0%';
+  document.getElementById('intro-screen').style.display='block';
+}
+</script>
+</body>
+</html>
